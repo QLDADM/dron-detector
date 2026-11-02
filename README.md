@@ -46,7 +46,9 @@ Po połączeniu strona pobiera też historię dronów, które płytka zapisała,
 
 ---
 
-## Co widać na stronie
+## Co widać na stronie (wersja strony 1.0)
+
+Numer wersji strony jest pod listą dronów. Strona ma własną numerację, niezależną od firmware płytek.
 
 Na tablecie albo komputerze (ekran szerszy niż 900 px) wszystko jest na jednym ekranie: u góry pasek z płytkami
 i przyciskami **Połącz / Rozłącz / Dodaj płytkę**, po lewej lista dronów, w środku mapa, po prawej widok 3D i radar,
@@ -55,15 +57,19 @@ na dole panele pasm Wi-Fi. Na telefonie te same części są jedna pod drugą.
 - **Model** (znane kody DJI), klasa i kategoria UE, typ statku, opis operatora, numer operatora, prędkość pionowa, maksima lotu oraz ostrzeżenia: ponad 120 m i zanik sygnału w locie.
 - **Lista dronów** z ID, wysokością, prędkością, siłą sygnału, odległością i kierunkiem od telefonu oraz danymi operatora.
   Na górze jest najbliższy aktywny dron (drony bez pozycji według siły sygnału), niżej nieaktywne.
-- **Mapa** z położeniem dronów, operatorów i Twoim. Przy dronie: nazwa, wysokość i odległość od Ciebie (`↑85 m · ↔250 m`).
+- **Mapa** z położeniem dronów, operatorów (fioletowe) i Twoim. Przy dronie: nazwa, wysokość i odległość od Ciebie (`↑85 m · ↔250 m`).
 - **Radar** w stylu wskaźnika wojskowego: Ty w środku, siatka odległości, podziałka azymutu co 5°, obracająca się wiązka.
-  Skalę wyznaczają drony z aktualnym sygnałem. Wiązka jest tylko wizualna: pozycje pochodzą z Remote ID i GPS telefonu.
+  Zasięg dobiera się sam do dronów z aktualnym sygnałem (500 m, 1, 2, 3 albo 5 km); dalsze drony radar podaje
+  jako „poza skalą”. Gdy wiązka mija drona, kropka rozbłyskuje i rozchodzi się od niej pierścień.
+  Kolory: zielony swój, czerwony obcy, żółty nieoznaczony, fioletowy kwadrat operator.
+  Wiązka jest tylko wizualna: pozycje pochodzą z Remote ID i GPS telefonu.
 - **Widok 3D**: drony na swojej wysokości nad ziemią wokół Ciebie, operatorzy na ziemi połączeni linią z dronem.
   Wysokość ma osobną, powiększoną skalę. Przeciąganie palcem obraca widok i zmienia nachylenie.
 - **Pełny widok** (przycisk ⤢ przy radarze i widoku 3D): radar, widok 3D albo oba w nowej karcie, na cały ekran,
   z podkładem mapy (OSM albo satelita, z suwakiem jasności). Dane przychodzą z karty głównej, więc ona musi zostać otwarta.
-- **Pasma Wi-Fi 2,4 i 5 GHz**: zajętość kanałów (ramki na sekundę i najsilniejszy sygnał). Wypełniają się, gdy płytka
-  przyśle takie dane (planowane czujniki ESP32-C5). To nie jest widmo radiowe: aparatur ELRS ani analogowego wideo tu nie widać.
+- **Pasma Wi-Fi 2,4 i 5 GHz**: zajętość kanałów (ramki na sekundę i najsilniejszy sygnał). Dane wysyła CYD: 2,4 GHz
+  z czujnika ESP32-C5 nr 1 (bez niego z własnego radia), 5 GHz z czujnika C5 nr 2. Kanał, na którym teraz słychać drona,
+  jest na czerwono. To nie jest widmo radiowe: aparatur ELRS ani analogowego wideo tu nie widać.
 - Przyciski **Swój / Obcy**. Swoje drony nie wywołują alarmu.
 - **Alarm** (dźwięk i wibracja) przy nowym, nieoznaczonym dronie.
 - **Historia** lotów zapisana w płytce.
