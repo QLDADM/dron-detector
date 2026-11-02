@@ -34,6 +34,9 @@
   .pill { font-size: 12px; padding: 2px 9px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); }
   .pill.on { color: var(--ok); border-color: var(--ok); }
   .pill.off { color: var(--bad); border-color: var(--bad); }
+  /* bez pozycji GPS znacznik w nagłówku miga na czerwono (zamiast napisu na radarze) */
+  .pill.gpsbad { color: #fff; background: var(--bad); border-color: var(--bad); font-weight: 600; animation: gpsblink 1s steps(2, start) infinite; }
+  @keyframes gpsblink { 50% { opacity: .35; } }
   .bar { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 8px 0; color: var(--muted); font-size: 13px; }
   .bar b { color: var(--text); font-weight: 600; }
   .note { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
@@ -158,7 +161,7 @@
 <header>
   <h1 title="Dron Detector, wersja strony 1.0"><img src="favicon.png" alt="" class="logo">RID</h1>
   <div id="boards"><span id="noboard" class="pill off">nie połączono</span></div>
-  <span id="gps" class="pill">GPS: —</span>
+  <span id="gps" class="pill gpsbad">GPS: —</span>
   <button id="connect" class="primary">Połącz</button>
   <button id="disconnectall" disabled>Rozłącz</button>
   <button id="addboard" disabled>Dodaj płytkę</button>
@@ -557,8 +560,9 @@ function startGps() {
   navigator.geolocation.watchPosition((p) => {
     me = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy };
     $("gps").textContent = `GPS: ±${Math.round(me.acc)} m`;
+    $("gps").classList.remove("gpsbad");
     scheduleRender();
-  }, () => { $("gps").textContent = "GPS: brak dostępu"; },
+  }, () => { $("gps").textContent = "GPS: brak dostępu"; $("gps").classList.add("gpsbad"); },
   { enableHighAccuracy: true, maximumAge: 5000 });
 }
 
@@ -846,11 +850,12 @@ function renderRadar(list) {
   const noPos = list.filter(({ d }) => d.lat === undefined).length;
   const scale = RidViews.pickScale(pts);
   const outside = pts.filter((p) => p.kind === "d" && p.dist > scale).length;
-  const msg = !me ? "brak GPS tabletu" : [noPos && `bez pozycji: ${noPos}`, outside && `poza skalą: ${outside}`].filter(Boolean).join(", ");
+  // bez GPS radar jest pusty bez napisu - brak pozycji pokazuje migający znacznik GPS w nagłówku
+  const msg = !me ? "" : [noPos && `bez pozycji: ${noPos}`, outside && `poza skalą: ${outside}`].filter(Boolean).join(", ");
   $("radarscale").textContent = me ? `zasięg ${RidViews.distText(scale)}` : "";
   $("radarmsg").textContent = msg;
   RidViews.radar($("radar"), $("sweep"), pts, scale);
-  v3.set(pts.filter((p) => p.dist <= scale), scale, me ? "" : msg);
+  v3.set(pts.filter((p) => p.dist <= scale), scale, "");
   RidViews.share("rid-view-phone", { pts, scale, msg, hasMe: !!me, me });
 }
 // radar i widok 3D w nowej karcie, na cały ekran (dane przez BroadcastChannel, ta karta musi zostać otwarta)
