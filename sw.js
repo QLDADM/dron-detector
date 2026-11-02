@@ -1,6 +1,8 @@
 // Strona działa bez internetu po pierwszym otwarciu (w terenie telefon łączy się tylko z Heltec).
 // Obejrzane fragmenty mapy i biblioteka Leaflet zostają w pamięci telefonu.
-const CACHE = "rid-phone-v43";
+// nazwa pamięci = wersja strony; nowe pliki i tak przychodzą od razu (fetch z no-cache niżej),
+// więc nazwę zmienia się tylko przy nowej wersji strony
+const CACHE = "dron-detector-1.0";
 const TILES = "rid-tiles-v1";
 const MAX_TILES = 1500;  // ok. 20-40 MB
 const FILES = ["./", "index.html", "radar.js", "view.html", "manifest.webmanifest", "favicon.png", "icon-192.png", "icon-512.png", "nosleep.mp4"];

@@ -188,7 +188,7 @@ const RidViews = (() => {
         s += `<line class="gr" x1="-2" y1="${y}" x2="2" y2="${y}" stroke="${G}" stroke-opacity=".6" stroke-width="0.6"/>`;
         s += `<text class="gt" x="-4" y="${y}" fill="${G}" fill-opacity=".7" font-size="7" text-anchor="end" dominant-baseline="central" ${halo}>${h} m</text>`;
       }
-      const k = unitPx(svg, 224, 190), fs = fit(11, k, 4.5, 9), r0 = fit(5.5, k, 2, 3.5);
+      const vb = svg.viewBox.baseVal, k = unitPx(svg, vb.width || 224, vb.height || 190), fs = fit(11, k, 4.5, 9), r0 = fit(5.5, k, 2, 3.5);
       const lhalo = `stroke="#02100a" stroke-width="${(fs * 0.28).toFixed(2)}" paint-order="stroke" font-family="monospace"`;
       const items = [], tops = new Map();
       for (const p of V.pts) {
@@ -217,8 +217,13 @@ const RidViews = (() => {
           <text x="${t.x + r0 + 1.5}" y="${t.y - fs * 0.15}" fill="#dbe4ec" font-size="${fs}" ${lhalo}>${esc(p.label)}</text>
           <text x="${t.x + r0 + 1.5}" y="${t.y + fs * 0.85}" fill="#9fe8bd" font-size="${(fs * 0.85).toFixed(2)}" ${lhalo}>${hTxt(p)}</text></g>`;
       }
-      if (V.msg) s += `<text x="0" y="58" fill="#9fe8bd" font-size="9" text-anchor="middle" ${halo}>${esc(V.msg)}</text>`;
+      if (V.msg) s += `<text x="0" y="${(R * 1.1 * se).toFixed(1)}" fill="#9fe8bd" font-size="9" text-anchor="middle" ${halo}>${esc(V.msg)}</text>`;
       fg.innerHTML = s;
+      // kadr dopasowany do sceny przy danym nachyleniu: bez pustych marginesów, a wysokie drony się mieszczą
+      let top = Math.min(-R * 1.1 * se - 7, -HZ * ce - 6);
+      for (const { p, t } of items) if (p.kind === "d") top = Math.min(top, t.y - fs * 1.3);
+      const bottom = R * 1.1 * se + 8, half = R * 1.1 + 9;
+      svg.setAttribute("viewBox", `${-half} ${top.toFixed(1)} ${2 * half} ${(bottom - top).toFixed(1)}`);
       if (info) info.textContent = `wysokość do ${hMax} m`;
     }
     svg.addEventListener("pointerdown", (e) => {

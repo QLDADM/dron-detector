@@ -49,7 +49,7 @@
   #view3d { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; cursor: grab; border-radius: 8px;
     border: 1px solid rgba(60, 207, 122, .4); background: radial-gradient(ellipse at 50% 65%, #06220f 0%, #02100a 70%, #010805 100%); }
   #view3d:active { cursor: grabbing; }
-  #radarpanel { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line);
+  #radarpanel { flex: 1.4 1 0; min-height: 0;  /* radar potrzebuje kwadratu - większa część kolumny */ display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line);
     border-radius: 10px; padding: 8px; overflow: hidden; }
   #rbox { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
   .ptitle { margin: 0 0 6px; font: 600 12px ui-monospace, Consolas, monospace; letter-spacing: .08em; color: #3ccf7a;
