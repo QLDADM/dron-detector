@@ -48,9 +48,7 @@
   #radarbox { position: relative; }
   /* wiązka tylko wizualna: nic nie skanuje kierunku, pozycje dronów pochodzą z ich Remote ID */
   #sweep { position: absolute; inset: 4.545%; border-radius: 50%; pointer-events: none;
-    background: conic-gradient(rgba(60,207,122,0) 0deg 290deg, rgba(60,207,122,.32) 359deg, rgba(60,207,122,.9) 360deg);
-    animation: rsweep 4s linear infinite; }
-  @keyframes rsweep { to { transform: rotate(360deg); } }
+    background: conic-gradient(rgba(60,207,122,0) 0deg 290deg, rgba(60,207,122,.32) 359deg, rgba(60,207,122,.9) 360deg); }
   .blip { animation: rblip 4s linear infinite; }
   @keyframes rblip { 0% { opacity: 1; } 100% { opacity: .55; } }
   @media (prefers-reduced-motion: reduce) { #sweep { display: none; } .blip { animation: none; } }
@@ -793,6 +791,7 @@ async function renderViews(list) {
 
 $("fit").addEventListener("click", () => { autoFit = true; if (map) map.setZoom(5); render(); });
 
+let sweepAnim = null;
 function renderRadar(list) {
   const pts = [];
   if (me) {
@@ -805,7 +804,11 @@ function renderRadar(list) {
   $("radarmsg").textContent = !me ? "brak GPS tabletu"
     : noPos ? `bez pozycji: ${noPos}` : "";
   const SWEEP_MS = 4000, phase = Date.now() % SWEEP_MS;
-  $("sweep").style.animationDelay = `${-phase}ms`;  // kąt wiązki wynika z zegara, więc odświeżanie nie cofa animacji
+  // uruchamiana raz: zmiana animacji przy każdym odświeżeniu danych powodowała przeskoki wiązki
+  if (!sweepAnim && document.timeline.currentTime !== null) {
+    sweepAnim = $("sweep").animate([{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }], { duration: SWEEP_MS, iterations: Infinity });
+    sweepAnim.startTime = document.timeline.currentTime - phase;  // kąt wiązki wynika z zegara, tak jak rozbłyski dronów
+  }
   const max = Math.max(...pts.map((p) => p.dist), 50);
   const scale = pts.length ? [50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 10000, 20000].find((s) => s >= max) || max : 500;
   let svg = "";
