@@ -42,7 +42,25 @@
   .alert { background: var(--bad); color: #fff; border-radius: 10px; padding: 10px 12px; margin: 10px 0;
     font-weight: 600; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
   .alert button { background: rgba(0,0,0,.25); color: #fff; border-color: rgba(255,255,255,.4); padding: 5px 10px; }
-  #radarwrap { position: absolute; right: 8px; bottom: 8px; width: min(240px, 42%); z-index: 900; pointer-events: none;
+  /* prawa kolumna: widok 3D, pod nim radar */
+  #right { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
+  #v3panel { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 8px; overflow: hidden; }
+  #view3d { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; cursor: grab; border-radius: 8px;
+    border: 1px solid rgba(60, 207, 122, .4); background: radial-gradient(ellipse at 50% 65%, #06220f 0%, #02100a 70%, #010805 100%); }
+  #view3d:active { cursor: grabbing; }
+  #radarpanel { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 8px; overflow: hidden; }
+  #rbox { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  .ptitle { margin: 0 0 6px; font: 600 12px ui-monospace, Consolas, monospace; letter-spacing: .08em; color: #3ccf7a;
+    display: flex; justify-content: space-between; gap: 8px; }
+  .ptitle small { color: var(--muted); font-weight: 400; letter-spacing: 0; }
+  .ptitle span { display: flex; align-items: center; gap: 6px; }
+  .ptitle .popout { padding: 0 7px; font-size: 14px; line-height: 20px; border-radius: 6px; }
+  .rlegend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+  .rlegend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+  .rlegend i.sq { border-radius: 0; background: var(--warn); }
+  #radarwrap { position: relative; pointer-events: none;
     background: radial-gradient(circle, rgba(6, 34, 18, .93) 0%, rgba(2, 16, 8, .93) 75%, rgba(1, 8, 4, .95) 100%);
     border: 1px solid rgba(60, 207, 122, .55); border-radius: 50%; box-shadow: 0 0 10px rgba(60, 207, 122, .25); }
   #radar { width: 100%; height: auto; display: block; aspect-ratio: 1; }
@@ -118,8 +136,10 @@
   @media (min-width: 900px) {
     html, body { height: 100%; }
     body { display: flex; flex-direction: column; overflow: hidden; }
-    main { flex: 1; min-height: 0; grid-template: minmax(0, 1fr) auto / 340px minmax(0, 1fr); grid-template-areas: "side map" "bands bands"; }
+    main { flex: 1; min-height: 0; grid-template: minmax(0, 1fr) auto / 340px minmax(0, 1fr) 300px;
+      grid-template-areas: "side map right" "bands bands bands"; }
     #mapwrap { grid-area: map; }
+    #right { grid-area: right; }
     #map { height: 100%; min-height: 0; }
     #side { grid-area: side; display: flex; flex-direction: column; min-height: 0; }
     #sidescroll { flex: 1; min-height: 0; overflow-y: auto; }
@@ -128,6 +148,9 @@
   @media (max-width: 899px) {
     #boards { order: 5; flex: 1 0 100%; }
     #bandwrap { grid-template-columns: 1fr; }
+    #view3d { flex: none; aspect-ratio: 224 / 190; }
+    #rbox { flex: none; height: min(92vw, 340px); }
+    #v3panel, #radarpanel { flex: none; }
   }
 </style>
 </head>
@@ -151,7 +174,6 @@
     <div id="map"></div>
     <div id="mapmsg" class="note" hidden></div>
     <button id="fit" title="Pokaż wszystkie drony i tablet">Dopasuj</button>
-    <div id="radarwrap"><div id="radarbox"><svg id="radar" viewBox="-110 -110 220 220"></svg><div id="sweep"></div><div id="radarmsg"></div></div></div>
   </section>
   <aside id="side">
     <div class="bar">
@@ -169,9 +191,22 @@
     <p id="sidenote">Na Androidzie użyj Chrome, na iPhonie Bluefy. Oznaczenia swój/obcy trafiają do wszystkich połączonych płytek. Odległości liczone są z GPS tego urządzenia.</p>
     </div>
   </aside>
+  <section id="right">
+    <div id="v3panel">
+      <h3 class="ptitle">WIDOK 3D <span><small id="v3info"></small><button class="popout" data-view="3d" title="Otwórz w nowej karcie na cały ekran">⤢</button></span></h3>
+      <svg id="view3d" viewBox="-112 -125 224 190"></svg>
+    </div>
+    <div id="radarpanel">
+      <h3 class="ptitle">RADAR <span><small id="radarscale"></small><button class="popout" data-view="radar" title="Otwórz w nowej karcie na cały ekran">⤢</button></span></h3>
+      <div id="rbox"><div id="radarwrap"><div id="radarbox"><svg id="radar" viewBox="-110 -110 220 220"></svg><div id="sweep"></div><div id="radarmsg"></div></div></div></div>
+      <div class="rlegend"><span><i style="background:var(--ok)"></i>swój</span><span><i style="background:var(--bad)"></i>obcy</span>
+        <span><i style="background:var(--warn)"></i>nieoznaczony</span><span><i class="sq"></i>operator</span></div>
+    </div>
+  </section>
   <section id="bandwrap"></section>
 </main>
 
+<script src="radar.js"></script>
 <script>
 "use strict";
 const NUS = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
@@ -599,10 +634,13 @@ function tagBadge(t) {
 function render() {
   const now = Date.now();
   const hideOwn = $("hideown").checked;
+  // u góry aktywne od najbliższego (bez pozycji: od najsilniejszego sygnału), niżej nieaktywne od najświeższego
   const list = [...drones.entries()]
-    .map(([k, d]) => ({ k, d, tag: tagOf(d), age: (now - d.seen) / 1000 }))
+    .map(([k, d]) => ({ k, d, tag: tagOf(d), age: (now - d.seen) / 1000,
+      dist: me && d.lat !== undefined ? geo(me.lat, me.lon, d.lat, d.lon).dist : Infinity }))
     .filter((x) => !(hideOwn && x.tag === "own"))
-    .sort((a, b) => (a.age > STALE_S) - (b.age > STALE_S) || a.age - b.age);
+    .sort((a, b) => (a.age > STALE_S) - (b.age > STALE_S)
+      || (a.age > STALE_S ? a.age - b.age : a.dist - b.dist || (b.d.rssi ?? -999) - (a.d.rssi ?? -999)));
 
   if (!list.length) {
     $("list").innerHTML = `<div class="empty">${anyConnected() ? "Brak dronów w zasięgu. Płytki nasłuchują…" : "Połącz się z płytką Heltec albo CYD, żeby zobaczyć drony w zasięgu."}</div>`;
@@ -698,7 +736,7 @@ async function ensureMap() {
     return null;
   }
   map = L.map("map", { zoomControl: true, attributionControl: true }).setView([52.1, 19.4], 6);
-  map.attributionControl.setPosition("bottomleft");  // prawy dolny róg zajmuje radar
+  map.attributionControl.setPosition("bottomleft");
   // podkłady mapy; wybór zapamiętany w telefonie
   const bases = {
     "OpenStreetMap": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }),
@@ -742,7 +780,7 @@ function renderMap(list) {
     const color = TAG_COLOR[tag] || "#f0b429";
     g.track.setLatLngs(d.track || []).setStyle({ color });
     g.drone.setLatLng([d.lat, d.lon]).setIcon(droneIcon(d, tag)).setOpacity(age > STALE_S ? 0.5 : 1);
-    g.drone.setTooltipContent(`${esc((names[d.id] || d.id || "?").slice(-10))} · ${fmt(d.h ?? d.alt, " m")}`);
+    g.drone.setTooltipContent(`${esc((names[d.id] || d.id || "?").slice(-10))}<br>↑${fmt(d.h ?? d.alt, " m")}${me ? ` · ↔${distText(geo(me.lat, me.lon, d.lat, d.lon).dist)}` : ""}`);
     pts.push([d.lat, d.lon]);
     if (d.olat !== undefined) {
       if (!g.op) {
@@ -794,75 +832,29 @@ async function renderViews(list) {
 
 $("fit").addEventListener("click", () => { autoFit = true; if (map) map.setZoom(5); render(); });
 
-// siatka jak na wojskowym wskaźniku PPI: pierścienie odległości, promienie co 30°, podziałka azymutu co 5°
-function radarGrid(scale) {
-  const G = "#3ccf7a";
-  const P = (r, deg) => { const a = (deg * Math.PI) / 180; return [(r * Math.sin(a)).toFixed(1), (-r * Math.cos(a)).toFixed(1)]; };
-  let s = "";
-  for (let i = 1; i <= 8; i++) {
-    const r = (100 * i) / 8;
-    s += i % 2 ? `<circle r="${r}" fill="none" stroke="${G}" stroke-opacity=".2" stroke-width="0.4" stroke-dasharray="1 2"/>`
-      : `<circle r="${r}" fill="none" stroke="${G}" stroke-opacity="${i === 8 ? 0.85 : 0.45}" stroke-width="${i === 8 ? 1 : 0.6}"/>`;
-  }
-  for (let deg = 0; deg < 360; deg += 30) {
-    const [x, y] = P(100, deg), main = deg % 90 === 0;
-    s += `<line x1="0" y1="0" x2="${x}" y2="${y}" stroke="${G}" stroke-opacity="${main ? 0.45 : 0.25}" stroke-width="${main ? 0.6 : 0.4}"${main ? "" : ' stroke-dasharray="2 2"'}/>`;
-  }
-  for (let deg = 0; deg < 360; deg += 5) {
-    const [x1, y1] = P(100, deg), [x2, y2] = P(deg % 30 === 0 ? 93 : deg % 10 === 0 ? 96 : 98, deg);
-    s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${G}" stroke-opacity=".8" stroke-width="0.6"/>`;
-  }
-  for (let deg = 0; deg < 360; deg += 30) {
-    const [x, y] = P(87, deg);
-    s += `<text x="${x}" y="${y}" fill="${G}" fill-opacity="${deg ? 0.75 : 1}" font-size="${deg ? 7 : 9}" font-family="monospace" text-anchor="middle" dominant-baseline="central">${deg ? String(deg).padStart(3, "0") : "N"}</text>`;
-  }
-  for (let i = 1; i <= 4; i++) {
-    const [x, y] = P(25 * i, 45);
-    s += `<text x="${x}" y="${y}" fill="${G}" font-size="7" font-family="monospace" text-anchor="middle" dominant-baseline="central" stroke="#03130a" stroke-width="3" paint-order="stroke">${distText((scale * i) / 4)}</text>`;
-  }
-  return s + `<circle r="2.5" fill="${G}"/>`;
-}
-
-let sweepAnim = null;
+const v3 = RidViews.view3d($("view3d"), $("v3info"));
+RidViews.fitRadar($("rbox"), $("radarwrap"));
 function renderRadar(list) {
   const pts = [];
   if (me) {
-    for (const { d, tag, age } of list) {
+    list.forEach(({ d, tag, age }, n) => {  // n łączy operatora z jego dronem w widoku 3D
       const fresh = age <= STALE_S;
-      if (d.lat !== undefined) pts.push({ ...geo(me.lat, me.lon, d.lat, d.lon), kind: "d", tag, fresh, label: (names[d.id] || d.id || "?").slice(-6) });
-      if (d.olat !== undefined) pts.push({ ...geo(me.lat, me.lon, d.olat, d.olon), kind: "o", fresh });
-    }
+      if (d.lat !== undefined) pts.push({ ...geo(me.lat, me.lon, d.lat, d.lon), kind: "d", tag, fresh, label: (names[d.id] || d.id || "?").slice(-6), h: d.h ?? null, n });
+      if (d.olat !== undefined) pts.push({ ...geo(me.lat, me.lon, d.olat, d.olon), kind: "o", fresh, n });
+    });
   }
   const noPos = list.filter(({ d }) => d.lat === undefined).length;
-  const SWEEP_MS = 4000, phase = Date.now() % SWEEP_MS;
-  // uruchamiana raz: zmiana animacji przy każdym odświeżeniu danych powodowała przeskoki wiązki
-  if (!sweepAnim && document.timeline.currentTime !== null) {
-    sweepAnim = $("sweep").animate([{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }], { duration: SWEEP_MS, iterations: Infinity });
-    sweepAnim.startTime = document.timeline.currentTime - phase;  // kąt wiązki wynika z zegara, tak jak rozbłyski dronów
-  }
-  // skalę wyznaczają tylko drony ze świeżym sygnałem: stary wpis z historii nie może jej rozciągać
-  const fresh = pts.filter((p) => p.fresh);
-  const max = Math.max(...fresh.map((p) => p.dist), 50);
-  const scale = fresh.length ? [50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 10000, 20000].find((s) => s >= max) || max : 500;
+  const scale = RidViews.pickScale(pts);
   const outside = pts.filter((p) => p.kind === "d" && p.dist > scale).length;
-  $("radarmsg").textContent = !me ? "brak GPS tabletu" : [noPos && `bez pozycji: ${noPos}`, outside && `poza skalą: ${outside}`].filter(Boolean).join(", ");
-  let svg = radarGrid(scale);
-  for (const p of pts) {
-    if (p.dist > scale) continue;
-    const r = (100 * p.dist) / scale, a = (p.brg * Math.PI) / 180;
-    const x = r * Math.sin(a), y = -r * Math.cos(a);
-    if (p.kind === "o") {
-      svg += `<rect x="${x - 2.5}" y="${y - 2.5}" width="5" height="5" fill="#f0b429" opacity="${p.fresh ? 1 : 0.4}"/>`;
-    } else {
-      const c = p.tag === "own" ? "#3ccf7a" : p.tag === "foreign" ? "#ff4d4f" : "#f0b429";
-      // dron rozbłyska, gdy mija go wiązka, ale nigdy nie znika
-      const since = (phase - (p.brg / 360) * SWEEP_MS + SWEEP_MS) % SWEEP_MS;
-      svg += `<g opacity="${p.fresh ? 1 : 0.4}"><g class="blip" style="animation-delay:${-since}ms"><circle cx="${x}" cy="${y}" r="4.5" fill="${c}" stroke="#000" stroke-width="0.8"/>`;
-      svg += `<text x="${x + 6}" y="${y + 3}" fill="#dbe4ec" font-size="9">${esc(p.label)}</text></g></g>`;
-    }
-  }
-  $("radar").innerHTML = svg;
+  const msg = !me ? "brak GPS tabletu" : [noPos && `bez pozycji: ${noPos}`, outside && `poza skalą: ${outside}`].filter(Boolean).join(", ");
+  $("radarscale").textContent = me ? `zasięg ${RidViews.distText(scale)}` : "";
+  $("radarmsg").textContent = msg;
+  RidViews.radar($("radar"), $("sweep"), pts, scale);
+  v3.set(pts.filter((p) => p.dist <= scale), scale, me ? "" : msg);
+  RidViews.share("rid-view-phone", { pts, scale, msg, hasMe: !!me, me });
 }
+// radar i widok 3D w nowej karcie, na cały ekran (dane przez BroadcastChannel, ta karta musi zostać otwarta)
+document.querySelectorAll(".popout").forEach((b) => b.addEventListener("click", () => window.open(`view.html?m=${b.dataset.view}`, "_blank")));
 
 // zajętość kanałów: ile ramek Wi-Fi słychać, a nie widmo radiowe, więc np. ELRS i analogowego wideo tu nie widać
 function renderBand() {

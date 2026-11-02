@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#010805">
+<title>RID - pełny widok</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<!-- Plik jest w dwóch miejscach (static/ i static/phone/) i musi być w obu taki sam. -->
+<style>
+  :root { --text: #dbe4ec; --muted: #8a99a8; --ok: #3ccf7a; --bad: #ff4d4f; --warn: #f0b429; --g: rgba(60, 207, 122, .4); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #010805; color: var(--text);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  body { display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); }
+  header { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 6px 10px; border-bottom: 1px solid var(--g); }
+  h1 { margin: 0; font: 600 14px ui-monospace, Consolas, monospace; letter-spacing: .08em; color: var(--ok); }
+  .modes { display: flex; gap: 4px; }
+  button { background: #0b1a10; color: var(--text); border: 1px solid var(--g); border-radius: 8px; padding: 5px 12px;
+    font-size: 14px; cursor: pointer; }
+  button.on { background: var(--ok); color: #02100a; font-weight: 700; }
+  #status { margin-left: auto; font-size: 13px; color: var(--muted); }
+  #status.bad { color: var(--bad); }
+  main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
+  section { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  section[hidden] { display: none; }
+  .ttl { margin: 0 0 6px; font: 600 12px ui-monospace, Consolas, monospace; letter-spacing: .08em; color: var(--ok);
+    display: flex; justify-content: space-between; gap: 8px; }
+  .ttl small { color: var(--muted); font-weight: 400; letter-spacing: 0; }
+  #rbox { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  #radarwrap { position: relative; pointer-events: none; border-radius: 50%;
+    background: radial-gradient(circle, rgba(6, 34, 18, .93) 0%, rgba(2, 16, 8, .93) 75%, rgba(1, 8, 4, .95) 100%);
+    border: 1px solid rgba(60, 207, 122, .55); box-shadow: 0 0 14px rgba(60, 207, 122, .25); }
+  #radarbox { position: relative; overflow: hidden; border-radius: 50%; }
+  #radar { position: relative; width: 100%; height: auto; display: block; aspect-ratio: 1; }
+  #radarmap { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* podkład mapy przyciemniony i zazieleniony, żeby nie zagłuszał radaru */
+  .mapg { filter: grayscale(1) sepia(.6) hue-rotate(65deg) brightness(var(--mapb, .55)) contrast(1.15); }
+  .mapg.sat { filter: saturate(.7) brightness(calc(var(--mapb, .55) * 1.2)); }
+  /* na mapie zielona siatka ginie, więc z podkładem mapy siatka jest czerwona */
+  .redgrid .gr { stroke: #ff4545; stroke-opacity: .8; }
+  .redgrid .gt { fill: #ff6b6b; fill-opacity: 1; }
+  .redgrid #radarwrap { border-color: rgba(255, 69, 69, .6); box-shadow: 0 0 14px rgba(255, 69, 69, .25); }
+  .redgrid #view3d { border-color: rgba(255, 69, 69, .45); }
+  #mapb { width: 110px; accent-color: var(--ok); vertical-align: middle; }
+  .mbl { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  /* wiązka tylko wizualna: nic nie skanuje kierunku, pozycje dronów pochodzą z ich Remote ID */
+  #sweep { position: absolute; inset: 4.545%; border-radius: 50%;
+    background: conic-gradient(rgba(60,207,122,0) 0deg 270deg, rgba(60,207,122,.28) 357deg, rgba(150,255,190,.95) 360deg); }
+  .blip { animation: rblip 4s linear infinite; }
+  @keyframes rblip { 0% { opacity: 1; } 100% { opacity: .55; } }
+  @media (prefers-reduced-motion: reduce) { #sweep { display: none; } .blip { animation: none; } }
+  #radarmsg { position: absolute; left: 50%; transform: translateX(-50%); bottom: 24%; color: #9fe8bd; font-size: 14px;
+    white-space: nowrap; background: rgba(1, 10, 5, .85); border-radius: 4px; padding: 1px 8px; }
+  #radarmsg:empty { display: none; }
+  #view3d { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; cursor: grab; border-radius: 10px;
+    border: 1px solid var(--g); background: radial-gradient(ellipse at 50% 65%, #06220f 0%, #02100a 70%, #010805 100%); }
+  #view3d:active { cursor: grabbing; }
+  .rlegend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; padding: 0 10px 8px; font-size: 13px; color: var(--muted); }
+  .rlegend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  .rlegend i.sq { border-radius: 0; background: var(--warn); }
+  @media (max-aspect-ratio: 1/1) { main { flex-direction: column; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>RID · PEŁNY WIDOK</h1>
+  <div class="modes">
+    <button data-m="radar">Radar</button>
+    <button data-m="3d">3D</button>
+    <button data-m="both">Oba</button>
+  </div>
+  <div class="modes" id="maps" title="Podkład mapy pod radarem i widokiem 3D">
+    <button data-l="osm">Mapa</button>
+    <button data-l="sat">Satelita</button>
+    <button data-l="">Bez mapy</button>
+  </div>
+  <label class="mbl">jasność mapy <input type="range" id="mapb" min="0.2" max="1.2" step="0.05" value="0.55"></label>
+  <button id="full" title="Pełny ekran (Esc wychodzi)">⛶ pełny ekran</button>
+  <span id="status">Czekam na dane z karty głównej.</span>
+</header>
+<main>
+  <section id="secradar">
+    <h3 class="ttl">RADAR <small id="radarscale"></small></h3>
+    <div id="rbox"><div id="radarwrap"><div id="radarbox"><svg id="radarmap" viewBox="-110 -110 220 220"><defs><clipPath id="rclip"><circle r="100"/></clipPath></defs><g clip-path="url(#rclip)"><g id="rmapg"></g></g></svg><svg id="radar" viewBox="-110 -110 220 220"></svg><div id="sweep"></div><div id="radarmsg"></div></div></div></div>
+  </section>
+  <section id="sec3d">
+    <h3 class="ttl">WIDOK 3D <small id="v3info"></small></h3>
+    <svg id="view3d" viewBox="-112 -125 224 190"></svg>
+  </section>
+</main>
+<div class="rlegend"><span><i style="background:var(--ok)"></i>swój</span><span><i style="background:var(--bad)"></i>obcy</span>
+  <span><i style="background:var(--warn)"></i>nieoznaczony</span><span><i class="sq"></i>operator</span>
+  <span>przeciągnij widok 3D, żeby go obrócić</span></div>
+
+<script src="radar.js"></script>
+<script>
+"use strict";
+// dane przychodzą z karty głównej (strona RID Decoder albo strona tabletu z połączeniem Bluetooth)
+const $ = (id) => document.getElementById(id);
+const CH = location.pathname.includes("/static/") ? "rid-view-pc" : "rid-view-phone";
+const v3 = RidViews.view3d($("view3d"), $("v3info"));
+let lastAt = 0, last = null;
+let layer = "osm";
+try { layer = localStorage.getItem("rid-view-map") ?? layer; } catch { /* tryb prywatny */ }
+try { $("mapb").value = localStorage.getItem("rid-view-mapb") ?? $("mapb").value; } catch { /* tryb prywatny */ }
+const setBright = () => document.documentElement.style.setProperty("--mapb", $("mapb").value);
+$("mapb").addEventListener("input", () => {
+  setBright();
+  try { localStorage.setItem("rid-view-mapb", $("mapb").value); } catch { /* tryb prywatny */ }
+});
+setBright();
+RidViews.fitRadar($("rbox"), $("radarwrap"));
+
+// mapa pod radarem i pod ziemią widoku 3D: punkt odniesienia, gdy nie widać zwykłej mapy
+function setLayer(l) {
+  layer = l;
+  document.body.classList.toggle("redgrid", !!l);
+  try { localStorage.setItem("rid-view-map", l); } catch { /* tryb prywatny */ }
+  document.querySelectorAll("#maps button").forEach((b) => b.classList.toggle("on", b.dataset.l === l));
+  if (last) show(last);
+}
+
+function setMode(m) {
+  const mode = ["radar", "3d", "both"].includes(m) ? m : "radar";
+  $("secradar").hidden = mode === "3d";
+  $("sec3d").hidden = mode === "radar";
+  document.querySelectorAll("[data-m]").forEach((b) => b.classList.toggle("on", b.dataset.m === mode));
+  history.replaceState(null, "", `?m=${mode}`);
+}
+function show(st) {
+  lastAt = Date.now();
+  last = st;
+  RidViews.mapInto($("rmapg"), st.me, st.scale, layer);
+  v3.setMap(st.me, layer);
+  $("radarscale").textContent = st.hasMe ? `zasięg ${RidViews.distText(st.scale)}` : "";
+  $("radarmsg").textContent = st.msg;
+  RidViews.radar($("radar"), $("sweep"), st.pts, st.scale);
+  v3.set(st.pts.filter((p) => p.dist <= st.scale), st.scale, st.hasMe ? "" : st.msg);
+}
+
+document.querySelectorAll("[data-m]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.m)));
+document.querySelectorAll("[data-l]").forEach((b) => b.addEventListener("click", () => setLayer(b.dataset.l)));
+$("full").addEventListener("click", () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.()));
+if ("BroadcastChannel" in window) {
+  const ch = new BroadcastChannel(CH);
+  ch.onmessage = (e) => { if (e.data?.pts) show(e.data); };
+  ch.postMessage("hello");
+} else {
+  $("status").textContent = "Ta przeglądarka nie przekazuje danych między kartami.";
+}
+// karta główna w tle może wysyłać rzadko (przeglądarka spowalnia karty w tle), stąd długi próg
+setInterval(() => {
+  const age = (Date.now() - lastAt) / 1000;
+  // stara karta główna (otwarta przed aktualizacją) nie wysyła pozycji, więc nie ma z czego ułożyć mapy
+  const old = last && last.v !== RidViews.VERSION;
+  $("status").className = (lastAt && age > 90) || old ? "bad" : "";
+  $("status").textContent = !lastAt ? "Czekam na dane z karty głównej - musi zostać otwarta."
+    : age > 90 ? `Brak danych od ${Math.round(age)} s - czy karta główna jest otwarta?`
+    : old ? "Karta główna ma starszą wersję strony - odśwież ją (Ctrl+F5)."
+    : !last.me ? "dane z karty głównej · brak pozycji GPS, więc bez mapy" : "dane z karty głównej";
+}, 1000);
+setMode(new URLSearchParams(location.search).get("m"));
+setLayer(layer);
+</script>
+</body>
+</html>
