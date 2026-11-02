@@ -13,20 +13,20 @@ const RidViews = (() => {
   const hTxt = (p) => `↑${p.h != null ? `${Math.round(p.h)} m` : "?"} · ↔${distText(p.dist)}`;
   const color = (tag) => (tag === "own" ? "#3ccf7a" : tag === "foreign" ? "#ff4d4f" : "#f0b429");
 
-  // Stały zasięg 10 km od Twojej pozycji (decyzja użytkownika: dalej anteny i tak nie łapią).
-  // Dalsze drony nie są rysowane - strona pokazuje ich liczbę jako "poza skalą".
-  const SCALE_M = 10000;
-  const pickScale = () => SCALE_M;
+  // Zasięg dobierany do dronów, najwyżej 10 km (dalej anteny i tak nie łapią): najmniejszy stopień, w którym
+  // najdalszy dron z aktualnym sygnałem jest najwyżej na ~85% promienia. Stary wpis z historii skali nie rozciąga.
+  // Drony dalej niż 10 km nie są rysowane - strona pokazuje ich liczbę jako "poza skalą".
+  const SCALES = [500, 1000, 2000, 3000, 5000, 10000];
+  function pickScale(pts) {
+    const fresh = pts.filter((p) => p.fresh);
+    if (!fresh.length) return 1000;
+    const need = Math.max(...fresh.map((p) => p.dist)) * 1.15;
+    return SCALES.find((s) => s >= need) || SCALES[SCALES.length - 1];
+  }
 
-  // Odległość -> promień rysunku (0..100). Skala logarytmiczna: bliskie drony nie zlewają się ze środkiem
-  // przy zasięgu 30 km (300 m to ~24% promienia, 1 km ~42%, 10 km ~81%). Liniowa tylko pod mapą,
-  // bo kafelki mapy nie dają się przeskalować logarytmicznie.
-  const LOG_D0 = 100;  // m: do tej odległości skala jest prawie liniowa
-  const radial = (d, scale, log) => (log ? (100 * Math.log1p(d / LOG_D0)) / Math.log1p(scale / LOG_D0) : (100 * d) / scale);
-  // pierścienie odległości: logarytmiczne 300 m, 1 km, 3 km, 10 km, 30 km...; liniowe co 1/4 zasięgu
-  const rings = (scale, log) => (log
-    ? [300, 1000, 3000, 10000, 30000, 100000, 300000].filter((d) => radial(d, scale, true) < 88).concat(scale)
-    : [1, 2, 3, 4].map((i) => (scale * i) / 4));
+  // odległość -> promień rysunku (0..100) i pierścienie co 1/4 zasięgu
+  const radial = (d, scale) => (100 * d) / scale;
+  const rings = (scale) => [1, 2, 3, 4].map((i) => (scale * i) / 4);
 
   // radar jako największe koło, jakie mieści się w swoim polu
   function fitRadar(box, wrap) {
@@ -69,9 +69,9 @@ const RidViews = (() => {
   }
 
   // siatka jak na wojskowym wskaźniku PPI: pierścienie odległości, promienie co 30°, podziałka azymutu co 5°
-  function radarGrid(scale, log) {
+  function radarGrid(scale) {
     const P = (r, deg) => [(r * Math.sin(deg * RAD)).toFixed(1), (-r * Math.cos(deg * RAD)).toFixed(1)];
-    const rs = rings(scale, log).map((d) => [d, radial(d, scale, log)]);
+    const rs = rings(scale).map((d) => [d, radial(d, scale)]);
     let s = "";
     // między pierścieniami cieńsze kropkowane (w połowie promienia sąsiednich)
     rs.forEach(([, r], i) => {
@@ -101,7 +101,7 @@ const RidViews = (() => {
 
   // radar: wiązka tylko wizualna, pozycje dronów pochodzą z ich Remote ID
   const sweeps = new WeakMap();
-  function radar(svg, sweep, pts, scale, log = true) {
+  function radar(svg, sweep, pts, scale) {
     const phase = Date.now() % SWEEP_MS;
     // animacja uruchamiana raz: zmiana przy każdym odświeżeniu danych powodowała przeskoki wiązki
     if (!sweeps.has(sweep) && document.timeline.currentTime !== null) {
@@ -110,10 +110,10 @@ const RidViews = (() => {
       sweeps.set(sweep, a);
     }
     const k = unitPx(svg, 220, 220), fs = fit(11, k, 4.5, 9), r0 = fit(6, k, 2.2, 4.5);
-    let s = radarGrid(scale, log);
+    let s = radarGrid(scale);
     for (const p of pts) {
       if (p.dist > scale) continue;
-      const r = radial(p.dist, scale, log);
+      const r = radial(p.dist, scale);
       const x = r * Math.sin(p.brg * RAD), y = -r * Math.cos(p.brg * RAD);
       if (p.kind === "o") {
         s += `<rect x="${x - r0 * 0.55}" y="${y - r0 * 0.55}" width="${r0 * 1.1}" height="${r0 * 1.1}" fill="#f0b429" stroke="#000" stroke-width="${r0 * 0.12}" opacity="${p.fresh ? 1 : 0.4}"/>`;
@@ -149,7 +149,7 @@ const RidViews = (() => {
       // mapa leży na ziemi: ten sam rzut co P dla z = 0, zapisany jako macierz (u na wschód, v na południe)
       mapT.setAttribute("transform", `matrix(${ca.toFixed(4)} ${(-sa * se).toFixed(4)} ${sa.toFixed(4)} ${(ca * se).toFixed(4)} 0 0)`);
       mapInto(mapG, V.me, V.scale, V.layer);
-      const log = !(V.me && V.layer), rs = rings(V.scale, log).map((d) => [d, radial(d, V.scale, log)]);
+      const rs = rings(V.scale).map((d) => [d, radial(d, V.scale)]);
       const halo = 'stroke="#02100a" stroke-width="2.5" paint-order="stroke" font-family="monospace"';
       let s = "";
       rs.forEach(([, r], i) => {
@@ -179,7 +179,7 @@ const RidViews = (() => {
       const lhalo = `stroke="#02100a" stroke-width="${(fs * 0.28).toFixed(2)}" paint-order="stroke" font-family="monospace"`;
       const items = [], tops = new Map();
       for (const p of V.pts) {
-        const r = radial(p.dist, V.scale, log), x = r * Math.sin(p.brg * RAD), y = r * Math.cos(p.brg * RAD);
+        const r = radial(p.dist, V.scale), x = r * Math.sin(p.brg * RAD), y = r * Math.cos(p.brg * RAD);
         const z = p.kind === "d" ? (HZ * Math.min(p.h || 0, hMax)) / hMax : 0;
         const it = { p, g: P(x, y, 0), t: P(x, y, z) };
         items.push(it);
