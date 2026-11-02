@@ -11,6 +11,8 @@ const RidViews = (() => {
   const fit = (px, k, min, max) => Math.min(max, Math.max(min, px / (k || 1e-6)));
   const unitPx = (svg, w, h) => Math.min(svg.clientWidth / w, svg.clientHeight / h);
   const hTxt = (p) => `↑${p.h != null ? `${Math.round(p.h)} m` : "?"} · ↔${distText(p.dist)}`;
+  // "1 dron", "2 drony", "5 dronów" - napisy na radarze
+  const dronesText = (n) => `${n} ${n === 1 ? "dron" : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? "drony" : "dronów"}`;
   const OP = "#c77dff";  // operator: fiolet, żeby nie mylił się z dronem nieoznaczonym (żółty)
   const color = (tag) => (tag === "own" ? "#3ccf7a" : tag === "foreign" ? "#ff4d4f" : "#f0b429");
 
@@ -259,5 +261,5 @@ const RidViews = (() => {
     chan.postMessage(lastState);
   }
 
-  return { VERSION, pickScale, fitRadar, mapInto, radar, view3d, share, distText };
+  return { VERSION, dronesText, pickScale, fitRadar, mapInto, radar, view3d, share, distText };
 })();

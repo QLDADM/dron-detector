@@ -934,7 +934,7 @@ function renderRadar(list) {
   const scale = RidViews.pickScale(pts);
   const outside = pts.filter((p) => p.kind === "d" && p.dist > scale).length;
   // bez GPS radar jest pusty bez napisu - brak pozycji pokazuje migający znacznik GPS w nagłówku
-  const msg = !me ? "" : [noPos && `bez pozycji: ${noPos}`, outside && `poza skalą: ${outside}`].filter(Boolean).join(", ");
+  const msg = !me ? "" : [noPos && `${RidViews.dronesText(noPos)} bez pozycji`, outside && `${RidViews.dronesText(outside)} poza skalą`].filter(Boolean).join(", ");
   $("radarscale").textContent = me ? `zasięg ${RidViews.distText(scale)}` : "";
   $("radarmsg").textContent = msg;
   RidViews.radar($("radar"), $("sweep"), pts, scale);
