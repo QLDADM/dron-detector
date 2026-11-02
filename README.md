@@ -1,10 +1,12 @@
-# RID Heltec: wykrywacz dronów Remote ID na płytce Heltec V3 z podglądem na telefonie
+# Dron Detector: wykrywacz dronów Remote ID z podglądem na telefonie i tablecie
+
+Repozytorium do 2.11.2026 nazywało się `rid-heltec`. Stary adres strony już nie działa, obecny jest niżej.
 
 Płytka **Heltec WiFi LoRa 32 V3** odbiera sygnał Remote ID, który nadają drony.
 Telefon łączy się z nią przez Bluetooth i pokazuje drony w okolicy: odległość i kierunek od Ciebie,
 radar, mapę, wysokość, prędkość, położenie operatora oraz oznaczenia swój/obcy.
 
-## ▶ Otwórz podgląd na telefonie: **https://qldadm.github.io/rid-heltec/**
+## ▶ Otwórz podgląd na telefonie: **https://qldadm.github.io/dron-detector/**
 
 Nie trzeba niczego instalować ani zakładać konta. Strona działa w przeglądarce telefonu.
 
@@ -14,7 +16,7 @@ Nie trzeba niczego instalować ani zakładać konta. Strona działa w przegląda
 
 ### 1. Wgraj firmware na Heltec (jednorazowo)
 
-Pobierz plik `rid-heltec-v3-full.bin` z zakładki **[Releases](https://github.com/QLDADM/rid-heltec/releases)**
+Pobierz plik `rid-heltec-v3-full.bin` z zakładki **[Releases](https://github.com/QLDADM/dron-detector/releases)**
 i wgraj go przez przeglądarkę na komputerze. Wszystko krok po kroku, także dla osób, które robią to pierwszy raz:
 **[instrukcja wgrywania](firmware/README.md)**.
 
@@ -27,7 +29,7 @@ Po wgraniu zasilaj płytkę z powerbanku, akumulatora albo ładowarki USB. Od ra
 | **Android** | **Google Chrome** |
 | **iPhone / iPad** | **Bluefy** (darmowa, z App Store). Safari i Chrome na iPhonie nie obsługują Bluetooth na stronach. |
 
-Wejdź na **https://qldadm.github.io/rid-heltec/** i włącz w telefonie **Bluetooth** oraz **lokalizację**
+Wejdź na **https://qldadm.github.io/dron-detector/** i włącz w telefonie **Bluetooth** oraz **lokalizację**
 (lokalizacja jest potrzebna do odległości i kierunku do drona).
 
 Wygodnie jest dodać stronę do ekranu głównego (w menu przeglądarki: „Dodaj do ekranu głównego”).
@@ -87,7 +89,7 @@ Połączenie wymaga sparowania PIN-em i jest szyfrowane, więc obcy telefon nie 
 - `index.html`, `sw.js`, `manifest.webmanifest` i ikony: strona podglądu, publikowana przez GitHub Pages.
 - `radar.js`: rysunek radaru i widoku 3D (wspólny ze stroną RID Decoder), `view.html`: pełny widok w osobnej karcie.
 - [firmware/](firmware/): kod źródłowy firmware dla Heltec V3 i instrukcja wgrywania.
-- [Releases](https://github.com/QLDADM/rid-heltec/releases): gotowe pliki firmware do wgrania.
+- [Releases](https://github.com/QLDADM/dron-detector/releases): gotowe pliki firmware do wgrania.
 
 ## Kilka płytek naraz
 

@@ -1,6 +1,6 @@
 {
-  "name": "RID Heltec - drony w zasięgu",
-  "short_name": "RID Heltec",
+  "name": "Dron Detector - drony w zasięgu",
+  "short_name": "Dron Detector",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -5,7 +5,7 @@ Zamienia płytkę Heltec V3 (ESP32-S3 + SX1262) w wykrywacz dronów Remote ID (A
 - Odbiera Wi-Fi Beacon, Wi-Fi NAN, BLE 4 i BLE 5 Long Range (2,4 GHz).
 - Pokazuje drony na OLED: ekran główny, lista, szczegóły i stan płytki (przycisk PRG). Na szczegółach ostatni wiersz zmienia się co 3 s: pozycja, numer operatora, klasa UE i maksymalna wysokość.
 - Bez komputera zapisuje wykryte drony w pamięci flash (około 4,9 MB) i prowadzi historię do 32 dronów ze śladem lotu.
-- Łączy się przez Bluetooth z [podglądem na telefonie](https://qldadm.github.io/rid-heltec/) (parowanie z 6-cyfrowym PIN-em, do 8 telefonów).
+- Łączy się przez Bluetooth z [podglądem na telefonie](https://qldadm.github.io/dron-detector/) (parowanie z 6-cyfrowym PIN-em, do 8 telefonów).
 - Oznaczenia swój/obcy są wspólne dla płytki, telefonu i serwera RID Decoder.
 - Wykrywa też drony Wi-Fi bez Remote ID (DJI Tello, Parrot, zabawkowe drony z kamerą Wi-Fi) po nazwie sieci albo producencie.
 - Może wysyłać alarmy o obcych dronach przez LoRa na kanał Meshtastic (domyślnie wyłączone).
@@ -25,7 +25,7 @@ Zamienia płytkę Heltec V3 (ESP32-S3 + SX1262) w wykrywacz dronów Remote ID (A
 
 ### Krok 1. Pobierz plik firmware
 
-1. Wejdź na https://github.com/QLDADM/rid-heltec/releases.
+1. Wejdź na https://github.com/QLDADM/dron-detector/releases.
 2. Przy najnowszej wersji (np. **v1.6**) w sekcji **Assets** kliknij **`rid-heltec-v3-full.bin`**.
 3. Plik trafi do folderu **Pobrane**. Nie otwieraj go, nie rozpakowuj i nie zmieniaj mu nazwy.
 
@@ -92,7 +92,7 @@ Gotowe. Płytka od razu nasłuchuje i zapisuje drony, także zasilana z powerban
 
 ## Pierwsze połączenie z telefonem
 
-1. Otwórz stronę podglądu https://qldadm.github.io/rid-heltec/: na Androidzie w **Chrome**, na iPhonie w przeglądarce **Bluefy**
+1. Otwórz stronę podglądu https://qldadm.github.io/dron-detector/: na Androidzie w **Chrome**, na iPhonie w przeglądarce **Bluefy**
    (Safari nie obsługuje Bluetooth na stronach).
 2. Kliknij **Połącz** i wybierz płytkę **RID-Heltec-XXXX**.
 3. Telefon zapyta o PIN. Wpisz **6 cyfr widocznych na ekranie Heltec**.
