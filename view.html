@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <!-- Plik jest w dwóch miejscach (static/ i static/phone/) i musi być w obu taki sam. -->
 <style>
-  :root { --text: #dbe4ec; --muted: #8a99a8; --ok: #3ccf7a; --bad: #ff4d4f; --warn: #f0b429; --g: rgba(60, 207, 122, .4); }
+  :root { --text: #dbe4ec; --muted: #8a99a8; --ok: #3ccf7a; --bad: #ff4d4f; --warn: #f0b429; --op: #c77dff; --g: rgba(60, 207, 122, .4); }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: #010805; color: var(--text);
     font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -57,7 +57,7 @@
   #view3d:active { cursor: grabbing; }
   .rlegend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; padding: 0 10px 8px; font-size: 13px; color: var(--muted); }
   .rlegend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
-  .rlegend i.sq { border-radius: 0; background: var(--warn); }
+  .rlegend i.sq { border-radius: 0; background: var(--op); }
   @media (max-aspect-ratio: 1/1) { main { flex-direction: column; } }
 </style>
 </head>

@@ -11,6 +11,7 @@ const RidViews = (() => {
   const fit = (px, k, min, max) => Math.min(max, Math.max(min, px / (k || 1e-6)));
   const unitPx = (svg, w, h) => Math.min(svg.clientWidth / w, svg.clientHeight / h);
   const hTxt = (p) => `↑${p.h != null ? `${Math.round(p.h)} m` : "?"} · ↔${distText(p.dist)}`;
+  const OP = "#c77dff";  // operator: fiolet, żeby nie mylił się z dronem nieoznaczonym (żółty)
   const color = (tag) => (tag === "own" ? "#3ccf7a" : tag === "foreign" ? "#ff4d4f" : "#f0b429");
 
   // Zasięg dobierany do dronów, najwyżej 5 km (dalej anteny i tak nie łapią): najmniejszy stopień, w którym
@@ -121,7 +122,7 @@ const RidViews = (() => {
       const r = radial(p.dist, scale);
       const x = r * Math.sin(p.brg * RAD), y = -r * Math.cos(p.brg * RAD);
       if (p.kind === "o") {
-        s += `<rect x="${x - r0 * 0.55}" y="${y - r0 * 0.55}" width="${r0 * 1.1}" height="${r0 * 1.1}" fill="#f0b429" stroke="#000" stroke-width="${r0 * 0.12}" opacity="${p.fresh ? 1 : 0.4}"/>`;
+        s += `<rect x="${x - r0 * 0.55}" y="${y - r0 * 0.55}" width="${r0 * 1.1}" height="${r0 * 1.1}" fill="${OP}" stroke="#000" stroke-width="${r0 * 0.12}" opacity="${p.fresh ? 1 : 0.4}"/>`;
         continue;
       }
       const halo = `stroke="#02100a" stroke-width="${(fs * 0.28).toFixed(2)}" paint-order="stroke" font-family="monospace"`;
@@ -199,14 +200,14 @@ const RidViews = (() => {
       }
       for (const { p, g } of items) {  // linia operator-dron pod pozostałymi znakami
         const t = p.kind === "o" && tops.get(p.n);
-        if (t) s += `<line x1="${g.x}" y1="${g.y}" x2="${t.x}" y2="${t.y}" stroke="#f0b429" stroke-opacity="${p.fresh ? 0.6 : 0.25}" stroke-width="0.6" stroke-dasharray="2 2"/>`;
+        if (t) s += `<line x1="${g.x}" y1="${g.y}" x2="${t.x}" y2="${t.y}" stroke="${OP}" stroke-opacity="${p.fresh ? 0.6 : 0.25}" stroke-width="0.6" stroke-dasharray="2 2"/>`;
       }
       s += '<circle r="2.6" fill="#3fb6ff" stroke="#fff" stroke-width="0.8"/>';
       items.sort((a, b) => b.g.d - a.g.d);
       for (const { p, g, t } of items) {
         const op = p.fresh ? 1 : 0.4;
         if (p.kind === "o") {
-          s += `<rect x="${g.x - r0 * 0.6}" y="${g.y - r0 * 0.6}" width="${r0 * 1.2}" height="${r0 * 1.2}" fill="#f0b429" stroke="#000" stroke-width="${r0 * 0.14}" opacity="${op}"/>`;
+          s += `<rect x="${g.x - r0 * 0.6}" y="${g.y - r0 * 0.6}" width="${r0 * 1.2}" height="${r0 * 1.2}" fill="${OP}" stroke="#000" stroke-width="${r0 * 0.14}" opacity="${op}"/>`;
           continue;
         }
         const c = color(p.tag);
