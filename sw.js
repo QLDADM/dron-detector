@@ -1,12 +1,14 @@
 // Strona działa bez internetu po pierwszym otwarciu (w terenie telefon łączy się tylko z Heltec).
 // Obejrzane fragmenty mapy i biblioteka Leaflet zostają w pamięci telefonu.
-const CACHE = "rid-phone-v41";
+const CACHE = "rid-phone-v42";
 const TILES = "rid-tiles-v1";
 const MAX_TILES = 1500;  // ok. 20-40 MB
 const FILES = ["./", "index.html", "radar.js", "view.html", "manifest.webmanifest", "favicon.png", "icon-192.png", "icon-512.png", "nosleep.mp4"];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache: "reload" - prosto z serwera; GitHub Pages pozwala przeglądarce trzymać pliki 10 min (max-age=600)
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: "reload" }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {
@@ -44,9 +46,10 @@ self.addEventListener("fetch", (e) => {
     e.respondWith(cacheFirst(e.request, CACHE));
     return;
   }
-  // strona: najpierw sieć (nowa wersja), bez sieci - kopia z pamięci telefonu
+  // strona: najpierw sieć z pytaniem serwera o nowszą wersję (no-cache: bez 10-minutowej kopii przeglądarki),
+  // bez sieci - kopia z pamięci telefonu
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: "no-cache" })
       .then((r) => {
         const copy = r.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copy));
