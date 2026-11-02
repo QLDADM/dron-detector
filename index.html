@@ -848,7 +848,7 @@ function renderRadar(list) {
   const scale = RidViews.pickScale(pts);
   const outside = pts.filter((p) => p.kind === "d" && p.dist > scale).length;
   const msg = !me ? "brak GPS tabletu" : [noPos && `bez pozycji: ${noPos}`, outside && `poza skalą: ${outside}`].filter(Boolean).join(", ");
-  $("radarscale").textContent = me ? `zasięg ${RidViews.distText(scale)}` : "";
+  $("radarscale").textContent = me ? `zasięg ${RidViews.distText(scale)} · log` : "";
   $("radarmsg").textContent = msg;
   RidViews.radar($("radar"), $("sweep"), pts, scale);
   v3.set(pts.filter((p) => p.dist <= scale), scale, me ? "" : msg);

@@ -134,9 +134,11 @@ function show(st) {
   last = st;
   RidViews.mapInto($("rmapg"), st.me, st.scale, layer);
   v3.setMap(st.me, layer);
-  $("radarscale").textContent = st.hasMe ? `zasięg ${RidViews.distText(st.scale)}` : "";
+  // z podkładem mapy skala liniowa (kafelki muszą się zgadzać z pozycjami), bez mapy logarytmiczna
+  const log = !(st.me && layer);
+  $("radarscale").textContent = st.hasMe ? `zasięg ${RidViews.distText(st.scale)}${log ? " · log" : ""}` : "";
   $("radarmsg").textContent = st.msg;
-  RidViews.radar($("radar"), $("sweep"), st.pts, st.scale);
+  RidViews.radar($("radar"), $("sweep"), st.pts, st.scale, log);
   v3.set(st.pts.filter((p) => p.dist <= st.scale), st.scale, st.hasMe ? "" : st.msg);
 }
 

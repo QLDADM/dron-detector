@@ -6,7 +6,7 @@ const RidViews = (() => {
   const VERSION = 2;  // podnieść przy zmianie danych wysyłanych do pełnego widoku
   const G = "#3ccf7a", SWEEP_MS = 4000, RAD = Math.PI / 180;
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const distText = (m) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(m < 10000 || m % 1000 ? 1 : 0)} km`);
+  const distText = (m) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(Math.round(m) % 1000 ? 1 : 0)} km`);
   // wielkość znaków drona liczona z rozmiaru rysunku na ekranie: te same piksele w małym panelu i na pełnym ekranie
   const fit = (px, k, min, max) => Math.min(max, Math.max(min, px / (k || 1e-6)));
   const unitPx = (svg, w, h) => Math.min(svg.clientWidth / w, svg.clientHeight / h);
@@ -22,6 +22,16 @@ const RidViews = (() => {
     const need = Math.max(0, ...fresh.map((p) => p.dist)) * 1.15;
     return Math.max(MIN_SCALE, Math.ceil(need / 10000) * 10000);
   }
+
+  // Odległość -> promień rysunku (0..100). Skala logarytmiczna: bliskie drony nie zlewają się ze środkiem
+  // przy zasięgu 30 km (300 m to ~24% promienia, 1 km ~42%, 10 km ~81%). Liniowa tylko pod mapą,
+  // bo kafelki mapy nie dają się przeskalować logarytmicznie.
+  const LOG_D0 = 100;  // m: do tej odległości skala jest prawie liniowa
+  const radial = (d, scale, log) => (log ? (100 * Math.log1p(d / LOG_D0)) / Math.log1p(scale / LOG_D0) : (100 * d) / scale);
+  // pierścienie odległości: logarytmiczne 300 m, 1 km, 3 km, 10 km, 30 km...; liniowe co 1/4 zasięgu
+  const rings = (scale, log) => (log
+    ? [300, 1000, 3000, 10000, 30000, 100000, 300000].filter((d) => radial(d, scale, true) < 88).concat(scale)
+    : [1, 2, 3, 4].map((i) => (scale * i) / 4));
 
   // radar jako największe koło, jakie mieści się w swoim polu
   function fitRadar(box, wrap) {
@@ -64,14 +74,17 @@ const RidViews = (() => {
   }
 
   // siatka jak na wojskowym wskaźniku PPI: pierścienie odległości, promienie co 30°, podziałka azymutu co 5°
-  function radarGrid(scale) {
+  function radarGrid(scale, log) {
     const P = (r, deg) => [(r * Math.sin(deg * RAD)).toFixed(1), (-r * Math.cos(deg * RAD)).toFixed(1)];
+    const rs = rings(scale, log).map((d) => [d, radial(d, scale, log)]);
     let s = "";
-    for (let i = 1; i <= 8; i++) {
-      const r = (100 * i) / 8;
-      s += i % 2 ? `<circle class="gr" r="${r}" fill="none" stroke="${G}" stroke-opacity=".2" stroke-width="0.4" stroke-dasharray="1 2"/>`
-        : `<circle class="gr" r="${r}" fill="none" stroke="${G}" stroke-opacity="${i === 8 ? 0.85 : 0.45}" stroke-width="${i === 8 ? 1 : 0.6}"/>`;
-    }
+    // między pierścieniami cieńsze kropkowane (w połowie promienia sąsiednich)
+    rs.forEach(([, r], i) => {
+      const mid = (r + (i ? rs[i - 1][1] : 0)) / 2;
+      s += `<circle class="gr" r="${mid.toFixed(1)}" fill="none" stroke="${G}" stroke-opacity=".2" stroke-width="0.4" stroke-dasharray="1 2"/>`;
+      const last = i === rs.length - 1;
+      s += `<circle class="gr" r="${r.toFixed(1)}" fill="none" stroke="${G}" stroke-opacity="${last ? 0.85 : 0.45}" stroke-width="${last ? 1 : 0.6}"/>`;
+    });
     for (let deg = 0; deg < 360; deg += 30) {
       const [x, y] = P(100, deg), main = deg % 90 === 0;
       s += `<line class="gr" x1="0" y1="0" x2="${x}" y2="${y}" stroke="${G}" stroke-opacity="${main ? 0.45 : 0.25}" stroke-width="${main ? 0.6 : 0.4}"${main ? "" : ' stroke-dasharray="2 2"'}/>`;
@@ -84,16 +97,16 @@ const RidViews = (() => {
       const [x, y] = P(87, deg);
       s += `<text class="gt" x="${x}" y="${y}" fill="${G}" fill-opacity="${deg ? 0.75 : 1}" font-size="${deg ? 7 : 9}" font-family="monospace" text-anchor="middle" dominant-baseline="central">${deg ? String(deg).padStart(3, "0") : "N"}</text>`;
     }
-    for (let i = 1; i <= 4; i++) {
-      const [x, y] = P(25 * i, 45);
-      s += `<text class="gt" x="${x}" y="${y}" fill="${G}" font-size="7" font-family="monospace" text-anchor="middle" dominant-baseline="central" stroke="#03130a" stroke-width="3" paint-order="stroke">${distText((scale * i) / 4)}</text>`;
+    for (const [d, r] of rs) {
+      const [x, y] = P(r, 45);
+      s += `<text class="gt" x="${x}" y="${y}" fill="${G}" font-size="7" font-family="monospace" text-anchor="middle" dominant-baseline="central" stroke="#03130a" stroke-width="3" paint-order="stroke">${distText(d)}</text>`;
     }
     return s + `<circle class="gt" r="2.5" fill="${G}"/>`;
   }
 
   // radar: wiązka tylko wizualna, pozycje dronów pochodzą z ich Remote ID
   const sweeps = new WeakMap();
-  function radar(svg, sweep, pts, scale) {
+  function radar(svg, sweep, pts, scale, log = true) {
     const phase = Date.now() % SWEEP_MS;
     // animacja uruchamiana raz: zmiana przy każdym odświeżeniu danych powodowała przeskoki wiązki
     if (!sweeps.has(sweep) && document.timeline.currentTime !== null) {
@@ -102,10 +115,10 @@ const RidViews = (() => {
       sweeps.set(sweep, a);
     }
     const k = unitPx(svg, 220, 220), fs = fit(11, k, 4.5, 9), r0 = fit(6, k, 2.2, 4.5);
-    let s = radarGrid(scale);
+    let s = radarGrid(scale, log);
     for (const p of pts) {
       if (p.dist > scale) continue;
-      const r = (100 * p.dist) / scale;
+      const r = radial(p.dist, scale, log);
       const x = r * Math.sin(p.brg * RAD), y = -r * Math.cos(p.brg * RAD);
       if (p.kind === "o") {
         s += `<rect x="${x - r0 * 0.55}" y="${y - r0 * 0.55}" width="${r0 * 1.1}" height="${r0 * 1.1}" fill="#f0b429" stroke="#000" stroke-width="${r0 * 0.12}" opacity="${p.fresh ? 1 : 0.4}"/>`;
@@ -141,12 +154,13 @@ const RidViews = (() => {
       // mapa leży na ziemi: ten sam rzut co P dla z = 0, zapisany jako macierz (u na wschód, v na południe)
       mapT.setAttribute("transform", `matrix(${ca.toFixed(4)} ${(-sa * se).toFixed(4)} ${sa.toFixed(4)} ${(ca * se).toFixed(4)} 0 0)`);
       mapInto(mapG, V.me, V.scale, V.layer);
+      const log = !(V.me && V.layer), rs = rings(V.scale, log).map((d) => [d, radial(d, V.scale, log)]);
       const halo = 'stroke="#02100a" stroke-width="2.5" paint-order="stroke" font-family="monospace"';
       let s = "";
-      for (let i = 1; i <= 4; i++) {
-        const r = (R * i) / 4;
-        s += `<ellipse class="gr" rx="${r}" ry="${(r * se).toFixed(1)}" fill="none" stroke="${G}" stroke-opacity="${i === 4 ? 0.7 : 0.35}" stroke-width="${i === 4 ? 0.9 : 0.5}"/>`;
-      }
+      rs.forEach(([, r], i) => {
+        const last = i === rs.length - 1;
+        s += `<ellipse class="gr" rx="${r.toFixed(1)}" ry="${(r * se).toFixed(1)}" fill="none" stroke="${G}" stroke-opacity="${last ? 0.7 : 0.35}" stroke-width="${last ? 0.9 : 0.5}"/>`;
+      });
       for (let b = 0; b < 360; b += 30) {
         const e = P(R * Math.sin(b * RAD), R * Math.cos(b * RAD), 0);
         s += `<line class="gr" x1="0" y1="0" x2="${e.x}" y2="${e.y}" stroke="${G}" stroke-opacity="${b % 90 ? 0.18 : 0.4}" stroke-width="0.5"/>`;
@@ -155,9 +169,8 @@ const RidViews = (() => {
         const e = P(R * 1.1 * Math.sin(i * 90 * RAD), R * 1.1 * Math.cos(i * 90 * RAD), 0);
         s += `<text class="gt" x="${e.x}" y="${e.y}" fill="${G}" font-size="${t === "N" ? 10 : 8}" text-anchor="middle" dominant-baseline="central" ${halo}>${t}</text>`;
       });
-      for (let i = 1; i <= 4; i++) {
-        const r = (R * i) / 4;
-        s += `<text class="gt" x="${(r * 0.71).toFixed(1)}" y="${(r * se * 0.71 + 3).toFixed(1)}" fill="${G}" fill-opacity=".8" font-size="7" text-anchor="middle" ${halo}>${distText((V.scale * i) / 4)}</text>`;
+      for (const [d, r] of rs) {
+        s += `<text class="gt" x="${(r * 0.71).toFixed(1)}" y="${(r * se * 0.71 + 3).toFixed(1)}" fill="${G}" fill-opacity=".8" font-size="7" text-anchor="middle" ${halo}>${distText(d)}</text>`;
       }
       // oś wysokości nad Tobą
       const step = hMax <= 200 ? 50 : 100;
@@ -171,7 +184,7 @@ const RidViews = (() => {
       const lhalo = `stroke="#02100a" stroke-width="${(fs * 0.28).toFixed(2)}" paint-order="stroke" font-family="monospace"`;
       const items = [], tops = new Map();
       for (const p of V.pts) {
-        const r = (R * p.dist) / V.scale, x = r * Math.sin(p.brg * RAD), y = r * Math.cos(p.brg * RAD);
+        const r = radial(p.dist, V.scale, log), x = r * Math.sin(p.brg * RAD), y = r * Math.cos(p.brg * RAD);
         const z = p.kind === "d" ? (HZ * Math.min(p.h || 0, hMax)) / hMax : 0;
         const it = { p, g: P(x, y, 0), t: P(x, y, z) };
         items.push(it);
