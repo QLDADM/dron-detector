@@ -47,10 +47,8 @@
   /* wiązka tylko wizualna: nic nie skanuje kierunku, pozycje dronów pochodzą z ich Remote ID */
   #sweep { position: absolute; inset: 4.545%; border-radius: 50%;
     background: conic-gradient(rgba(60,207,122,0) 0deg 270deg, rgba(60,207,122,.28) 357deg, rgba(150,255,190,.95) 360deg); }
-  .blip { animation: rblip 4s linear infinite; }
-  @keyframes rblip { 0% { opacity: 1; } 100% { opacity: .55; } }
-  /* wiązka kręci się zawsze (to znak, że radar działa); przy ograniczeniu ruchu nie pulsują tylko drony */
-  @media (prefers-reduced-motion: reduce) { .blip { animation: none; } }
+  /* pierścień przy przejściu wiązki: animacja w radar.js, tu środek skalowania */
+  .ping { transform-box: fill-box; transform-origin: center; }
   #radarmsg { position: absolute; left: 50%; transform: translateX(-50%); bottom: 24%; color: #9fe8bd; font-size: 14px;
     white-space: nowrap; background: rgba(1, 10, 5, .85); border-radius: 4px; padding: 1px 8px; }
   #radarmsg:empty { display: none; }

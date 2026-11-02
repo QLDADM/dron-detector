@@ -101,12 +101,17 @@ const RidViews = (() => {
 
   // radar: wiązka tylko wizualna, pozycje dronów pochodzą z ich Remote ID
   const sweeps = new WeakMap();
+  // przejście wiązki: kropka rozbłyska i przygasa do następnego obrotu, od drona rozchodzi się pierścień
+  const BLIP = [{ opacity: 1, filter: "brightness(1.8) drop-shadow(0 0 3px #fff)" }, { opacity: 1, filter: "none", offset: 0.12 },
+    { opacity: 0.4, filter: "none" }];
+  const PING = [{ transform: "scale(.35)", opacity: 0.95, easing: "ease-out" }, { transform: "scale(1)", opacity: 0, offset: 0.22 },
+    { transform: "scale(1)", opacity: 0 }];
+  const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
   function radar(svg, sweep, pts, scale) {
-    const phase = Date.now() % SWEEP_MS;
     // animacja uruchamiana raz: zmiana przy każdym odświeżeniu danych powodowała przeskoki wiązki
     if (!sweeps.has(sweep) && document.timeline.currentTime !== null) {
       const a = sweep.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }], { duration: SWEEP_MS, iterations: Infinity });
-      a.startTime = document.timeline.currentTime - phase;  // kąt wiązki wynika z zegara, tak jak rozbłyski dronów
+      a.startTime = document.timeline.currentTime - (Date.now() % SWEEP_MS);  // ten sam kąt w każdej karcie
       sweeps.set(sweep, a);
     }
     const k = unitPx(svg, 220, 220), fs = fit(11, k, 4.5, 9), r0 = fit(6, k, 2.2, 4.5);
@@ -119,14 +124,21 @@ const RidViews = (() => {
         s += `<rect x="${x - r0 * 0.55}" y="${y - r0 * 0.55}" width="${r0 * 1.1}" height="${r0 * 1.1}" fill="#f0b429" stroke="#000" stroke-width="${r0 * 0.12}" opacity="${p.fresh ? 1 : 0.4}"/>`;
         continue;
       }
-      // dron rozbłyska, gdy mija go wiązka, ale nigdy nie znika
-      const since = (phase - (p.brg / 360) * SWEEP_MS + SWEEP_MS) % SWEEP_MS;
       const halo = `stroke="#02100a" stroke-width="${(fs * 0.28).toFixed(2)}" paint-order="stroke" font-family="monospace"`;
-      s += `<g opacity="${p.fresh ? 1 : 0.4}"><g class="blip" style="animation-delay:${-since}ms"><circle cx="${x}" cy="${y}" r="${r0}" fill="${color(p.tag)}" stroke="#000" stroke-width="${r0 * 0.18}"/>`;
+      s += `<circle class="ping" data-brg="${p.brg.toFixed(1)}" cx="${x}" cy="${y}" r="${r0 * 2.6}" fill="none" stroke="${color(p.tag)}" stroke-width="${r0 * 0.35}" opacity="0"/>`;
+      s += `<g opacity="${p.fresh ? 1 : 0.4}"><g class="blip" data-brg="${p.brg.toFixed(1)}"><circle cx="${x}" cy="${y}" r="${r0}" fill="${color(p.tag)}" stroke="#000" stroke-width="${r0 * 0.18}"/>`;
       s += `<text x="${x + r0 + 1.5}" y="${y - fs * 0.15}" fill="#dbe4ec" font-size="${fs}" ${halo}>${esc(p.label)}</text>`;
       s += `<text x="${x + r0 + 1.5}" y="${y + fs * 0.85}" fill="#9fe8bd" font-size="${(fs * 0.85).toFixed(2)}" ${halo}>${hTxt(p)}</text></g></g>`;
     }
     svg.innerHTML = s;
+    // rozbłyski startują od startu wiązki przesuniętego o kierunek drona - zgrane z nią co do klatki,
+    // niezależnie od tego, kiedy przeglądarka narysuje nowe elementy
+    const a = sweeps.get(sweep);
+    if (!a || a.startTime === null || still()) return;
+    for (const el of svg.querySelectorAll("[data-brg]")) {
+      const k = el.animate(el.classList.contains("ping") ? PING : BLIP, { duration: SWEEP_MS, iterations: Infinity });
+      k.startTime = a.startTime + (el.dataset.brg / 360) * SWEEP_MS - SWEEP_MS;  // w przeszłości: animacja już trwa
+    }
   }
 
   // widok 3D wokół Twojej pozycji: skala pozioma jak na radarze, wysokość w osobnej (powiększonej) skali;
