@@ -116,8 +116,12 @@
   #map { height: 55vh; min-height: 280px; background: #0b0f13; }
   #mapmsg { position: absolute; left: 8px; right: 8px; top: 8px; z-index: 1000; margin: 0; }
   #fit { position: absolute; left: 56px; top: 10px; z-index: 1000; padding: 6px 10px; }
-  .leaflet-control.pickme { width: 34px; height: 34px; padding: 0; font-size: 17px; line-height: 30px; background: #fff; color: #000; cursor: pointer; }
-  .leaflet-control.pickme.on { background: var(--accent); }
+  .pickbox { display: flex; flex-direction: column; }
+  .pickbox .pickme { width: 34px; height: 34px; padding: 0; border: 0; border-radius: 0; font-size: 17px; line-height: 34px; background: #fff; color: #000; cursor: pointer; }
+  .pickbox .pickme + .pickme { border-top: 1px solid #ccc; }
+  .pickbox .pickclear { font-size: 15px; color: #c00; }
+  .pickbox .pickme[hidden] { display: none; }
+  .pickbox .pickme.on { background: var(--accent); }
   #map.picking, #map.picking .leaflet-interactive { cursor: crosshair; }
   .dicon svg { width: 30px; height: 30px; filter: drop-shadow(0 0 2px #000); }
   .oicon { width: 14px; height: 14px; background: var(--op); border: 2px solid #000; }
@@ -566,10 +570,12 @@ function applyManualMe() {
   $("gps").textContent = "GPS: ręcznie";
   $("gps").title = "Pozycja ustawiona ręcznie na mapie - kliknij, żeby wrócić do GPS";
   $("gps").classList.remove("gpsbad");
+  document.querySelector(".pickclear")?.removeAttribute("hidden");
 }
 applyManualMe();
-$("gps").addEventListener("click", () => {
-  if (!manualMe || !confirm("Usunąć ręcznie ustawioną pozycję i wrócić do GPS?")) return;
+// kasowanie ręcznej pozycji: przycisk ✖ na mapie albo kliknięcie znacznika GPS (wtedy z pytaniem)
+function clearManualMe(ask) {
+  if (!manualMe || (ask && !confirm("Usunąć ręcznie ustawioną pozycję i wrócić do GPS?"))) return;
   manualMe = null;
   store.set("manualMe", null);
   me = null;
@@ -577,8 +583,10 @@ $("gps").addEventListener("click", () => {
   $("gps").title = "";
   $("gps").classList.add("gpsbad");
   startGps();
+  document.querySelector(".pickclear")?.setAttribute("hidden", "");
   render();
-});
+}
+$("gps").addEventListener("click", () => clearManualMe(true));
 
 function startGps() {
   if (!navigator.geolocation || startGps.on) return;
@@ -773,17 +781,24 @@ async function ensureMap() {
   const PickControl = L.Control.extend({
     options: { position: "topleft" },
     onAdd() {
-      const b = L.DomUtil.create("button", "leaflet-bar pickme");
+      const box = L.DomUtil.create("div", "leaflet-bar pickbox");
+      const b = L.DomUtil.create("button", "pickme", box);
       b.type = "button";
       b.textContent = "📍";
       b.title = "Ustaw swoją pozycję: kliknij tę ikonę, a potem swoje miejsce na mapie";
-      L.DomEvent.disableClickPropagation(b);
       b.onclick = () => {
         picking = !picking;
         b.classList.toggle("on", picking);
         map.getContainer().classList.toggle("picking", picking);
       };
-      return b;
+      const x = L.DomUtil.create("button", "pickme pickclear", box);  // widoczny tylko przy ręcznej pozycji
+      x.type = "button";
+      x.textContent = "✖";
+      x.title = "Usuń ręcznie ustawioną pozycję";
+      x.hidden = !manualMe;
+      x.onclick = () => clearManualMe(false);
+      L.DomEvent.disableClickPropagation(box);
+      return box;
     },
   });
   new PickControl().addTo(map);
@@ -875,6 +890,10 @@ function renderMap(list) {
     meMarker.setLatLng([me.lat, me.lon]);
     meCircle.setLatLng([me.lat, me.lon]).setRadius(me.acc);
     pts.push([me.lat, me.lon]);
+  } else if (meMarker) {  // pozycja skasowana
+    meMarker.remove();
+    meCircle.remove();
+    meMarker = meCircle = null;
   }
   if (autoFit && pts.length) {
     const b = L.latLngBounds(pts);
