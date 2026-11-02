@@ -116,6 +116,9 @@
   #map { height: 55vh; min-height: 280px; background: #0b0f13; }
   #mapmsg { position: absolute; left: 8px; right: 8px; top: 8px; z-index: 1000; margin: 0; }
   #fit { position: absolute; left: 56px; top: 10px; z-index: 1000; padding: 6px 10px; }
+  .leaflet-control.pickme { width: 34px; height: 34px; padding: 0; font-size: 17px; line-height: 30px; background: #fff; color: #000; cursor: pointer; }
+  .leaflet-control.pickme.on { background: var(--accent); }
+  #map.picking, #map.picking .leaflet-interactive { cursor: crosshair; }
   .dicon svg { width: 30px; height: 30px; filter: drop-shadow(0 0 2px #000); }
   .oicon { width: 14px; height: 14px; background: var(--op); border: 2px solid #000; }
   .leaflet-tooltip.lbl { background: rgba(15, 20, 25, .85); color: var(--text); border: 1px solid var(--line);
@@ -554,15 +557,39 @@ function raiseAlert(d) {
 
 // ---------------------------------------------------------------- GPS telefonu
 
+// ręczna pozycja (komputer bez GPS): prawy klik albo przytrzymanie na mapie; zapamiętana w przeglądarce,
+// ma pierwszeństwo przed GPS do czasu skasowania kliknięciem znacznika GPS
+let manualMe = store.get("manualMe", null);
+function applyManualMe() {
+  if (!manualMe) return;
+  me = { lat: manualMe.lat, lon: manualMe.lon, acc: 0 };
+  $("gps").textContent = "GPS: ręcznie";
+  $("gps").title = "Pozycja ustawiona ręcznie na mapie - kliknij, żeby wrócić do GPS";
+  $("gps").classList.remove("gpsbad");
+}
+applyManualMe();
+$("gps").addEventListener("click", () => {
+  if (!manualMe || !confirm("Usunąć ręcznie ustawioną pozycję i wrócić do GPS?")) return;
+  manualMe = null;
+  store.set("manualMe", null);
+  me = null;
+  $("gps").textContent = "GPS: —";
+  $("gps").title = "";
+  $("gps").classList.add("gpsbad");
+  startGps();
+  render();
+});
+
 function startGps() {
   if (!navigator.geolocation || startGps.on) return;
   startGps.on = true;
   navigator.geolocation.watchPosition((p) => {
+    if (manualMe) return;
     me = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy };
     $("gps").textContent = `GPS: ±${Math.round(me.acc)} m`;
     $("gps").classList.remove("gpsbad");
     scheduleRender();
-  }, () => { $("gps").textContent = "GPS: brak dostępu"; $("gps").classList.add("gpsbad"); },
+  }, () => { if (!manualMe) { $("gps").textContent = "GPS: brak dostępu"; $("gps").classList.add("gpsbad"); } },
   { enableHighAccuracy: true, maximumAge: 5000 });
 }
 
@@ -741,6 +768,43 @@ async function ensureMap() {
   }
   map = L.map("map", { zoomControl: true, attributionControl: true }).setView([52.1, 19.4], 6);
   map.attributionControl.setPosition("bottomleft");
+  // ikona 📍: klik ikony, potem klik na mapie = moja pozycja (komputer bez GPS); prawy klik / przytrzymanie też działa
+  let picking = false;
+  const PickControl = L.Control.extend({
+    options: { position: "topleft" },
+    onAdd() {
+      const b = L.DomUtil.create("button", "leaflet-bar pickme");
+      b.type = "button";
+      b.textContent = "📍";
+      b.title = "Ustaw swoją pozycję: kliknij tę ikonę, a potem swoje miejsce na mapie";
+      L.DomEvent.disableClickPropagation(b);
+      b.onclick = () => {
+        picking = !picking;
+        b.classList.toggle("on", picking);
+        map.getContainer().classList.toggle("picking", picking);
+      };
+      return b;
+    },
+  });
+  new PickControl().addTo(map);
+  const setMeAt = (ll) => {
+    manualMe = { lat: ll.lat, lon: ll.lng };
+    store.set("manualMe", manualMe);
+    applyManualMe();
+    map.closePopup();
+    render();
+  };
+  map.on("click", (e) => {
+    if (!picking) return;
+    picking = false;
+    document.querySelector(".pickme")?.classList.remove("on");
+    map.getContainer().classList.remove("picking");
+    setMeAt(e.latlng);
+  });
+  map.on("contextmenu", (e) => {
+    L.popup().setLatLng(e.latlng).setContent('<button id="setme">Ustaw tu moją pozycję</button>').openOn(map);
+    $("setme").onclick = () => setMeAt(e.latlng);
+  });
   // podkłady mapy; wybór zapamiętany w telefonie
   const bases = {
     "OpenStreetMap": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }),
