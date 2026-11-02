@@ -158,8 +158,8 @@
   @media (max-width: 899px) {
     #boards { order: 5; flex: 1 0 100%; }
     #bandwrap { grid-template-columns: 1fr; }
-    #view3d { flex: none; aspect-ratio: 224 / 190; }
-    #rbox { flex: none; height: min(92vw, 340px); }
+    #view3d { flex: none; width: 100%; height: auto; aspect-ratio: 224 / 190; }
+    #rbox { flex: 1 1 auto; height: min(92vw, 340px); }  /* cała szerokość panelu - koło na środku */
     #v3panel, #radarpanel { flex: none; }
   }
 </style>
