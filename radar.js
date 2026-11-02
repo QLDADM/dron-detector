@@ -6,18 +6,21 @@ const RidViews = (() => {
   const VERSION = 2;  // podnieść przy zmianie danych wysyłanych do pełnego widoku
   const G = "#3ccf7a", SWEEP_MS = 4000, RAD = Math.PI / 180;
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const distText = (m) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)} km`);
+  const distText = (m) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(m < 10000 || m % 1000 ? 1 : 0)} km`);
   // wielkość znaków drona liczona z rozmiaru rysunku na ekranie: te same piksele w małym panelu i na pełnym ekranie
   const fit = (px, k, min, max) => Math.min(max, Math.max(min, px / (k || 1e-6)));
   const unitPx = (svg, w, h) => Math.min(svg.clientWidth / w, svg.clientHeight / h);
   const hTxt = (p) => `↑${p.h != null ? `${Math.round(p.h)} m` : "?"} · ↔${distText(p.dist)}`;
   const color = (tag) => (tag === "own" ? "#3ccf7a" : tag === "foreign" ? "#ff4d4f" : "#f0b429");
 
-  // skalę wyznaczają tylko drony ze świeżym sygnałem: stary wpis z historii nie może jej rozciągać
+  // Skala co 10 km, najmniej 30 km od Twojej pozycji (decyzja użytkownika). Wyznaczają ją tylko drony
+  // ze świeżym sygnałem (stary wpis z historii nie może jej rozciągać), z zapasem 15%: najdalszy dron
+  // jest najwyżej na ~85% promienia, a nie na krawędzi.
+  const MIN_SCALE = 30000;
   function pickScale(pts) {
     const fresh = pts.filter((p) => p.fresh);
-    const max = Math.max(...fresh.map((p) => p.dist), 50);
-    return fresh.length ? [50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 10000, 20000].find((s) => s >= max) || max : 500;
+    const need = Math.max(0, ...fresh.map((p) => p.dist)) * 1.15;
+    return Math.max(MIN_SCALE, Math.ceil(need / 10000) * 10000);
   }
 
   // radar jako największe koło, jakie mieści się w swoim polu
