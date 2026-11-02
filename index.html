@@ -17,12 +17,12 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text);
     font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  body { padding: 0 12px calc(16px + env(safe-area-inset-bottom)); max-width: 640px; margin: 0 auto; }
-  header { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 10px 0 8px;
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
-  h1 { font-size: 17px; margin: 0; flex: 1; }
-  h1 .logo { width: 26px; height: 26px; vertical-align: -6px; margin-right: 8px; border-radius: 6px; }
-  h1 small { color: var(--muted); font-weight: 400; font-size: 12px; display: block; }
+  body { padding: 0 8px calc(8px + env(safe-area-inset-bottom)); }
+  header { background: var(--bg); padding: 5px 0; display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--line); }
+  h1 { font-size: 15px; margin: 0; white-space: nowrap; }
+  h1 .logo { width: 24px; height: 24px; vertical-align: -6px; margin-right: 6px; border-radius: 6px; }
+  header > button { padding: 6px 11px; }
   button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
     padding: 9px 13px; font-size: 14px; cursor: pointer; }
   button.primary { background: var(--accent); color: #04121c; border-color: var(--accent); font-weight: 600; }
@@ -42,8 +42,30 @@
   .alert { background: var(--bad); color: #fff; border-radius: 10px; padding: 10px 12px; margin: 10px 0;
     font-weight: 600; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
   .alert button { background: rgba(0,0,0,.25); color: #fff; border-color: rgba(255,255,255,.4); padding: 5px 10px; }
-  #radarwrap { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin: 10px 0; padding: 6px; }
+  #radarwrap { flex: none; width: min(250px, 100%); margin: 8px auto 0; background: var(--panel); border: 1px solid var(--line); border-radius: 50%; }
   #radar { width: 100%; height: auto; display: block; aspect-ratio: 1; }
+  #radarbox { position: relative; }
+  /* wiązka tylko wizualna: nic nie skanuje kierunku, pozycje dronów pochodzą z ich Remote ID */
+  #sweep { position: absolute; inset: 4.545%; border-radius: 50%; pointer-events: none;
+    background: conic-gradient(rgba(60,207,122,0) 0deg 290deg, rgba(60,207,122,.32) 359deg, rgba(60,207,122,.9) 360deg);
+    animation: rsweep 4s linear infinite; }
+  @keyframes rsweep { to { transform: rotate(360deg); } }
+  .blip { animation: rblip 4s linear infinite; }
+  @keyframes rblip { 0% { opacity: 1; } 100% { opacity: .55; } }
+  @media (prefers-reduced-motion: reduce) { #sweep { display: none; } .blip { animation: none; } }
+  #radarmsg { position: absolute; left: 0; right: 0; bottom: 14%; color: var(--text); font-size: 11px; text-align: center; }
+  #bandwrap { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #bandnote { grid-column: 1 / -1; color: var(--muted); font-size: 11px; }
+  .band { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 5px 8px; min-width: 0; }
+  .band.stale { opacity: .55; }
+  .band h4 { margin: 0 0 2px; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; }
+  .band h4 small { color: var(--muted); font-weight: 400; }
+  .bchart { display: flex; gap: 2px; align-items: flex-end; overflow-x: auto; }
+  .bcol { flex: 1 0 18px; min-width: 18px; text-align: center; font-size: 10px; color: var(--muted); }
+  .bcol .bbox { height: 64px; display: flex; flex-direction: column; justify-content: flex-end; background: var(--panel2); border-radius: 3px; }
+  .bcol i { display: block; background: var(--accent); border-radius: 3px 3px 0 0; }
+  .bcol b { display: block; color: var(--text); font-weight: 400; height: 13px; }
+  .bandempty { color: var(--muted); font-size: 13px; text-align: center; padding: 28px 0; }
   .card { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--warn);
     border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
   .card.own { border-left-color: var(--ok); }
@@ -67,65 +89,86 @@
   .row a { color: var(--accent); }
   .empty { color: var(--muted); text-align: center; padding: 26px 8px; }
   label.chk { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 5px; }
-  .tabs { display: flex; gap: 6px; margin-top: 10px; }
-  .tabs button.sel { border-color: var(--accent); color: var(--accent); }
-  .tabs #fit { margin-left: auto; }
-  #mapwrap { margin: 8px 0 10px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; position: relative; }
+  #mapwrap { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; }
   #map { height: 55vh; min-height: 280px; background: #0b0f13; }
-  #mapmsg { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 1000; margin: 0; }
+  #mapmsg { position: absolute; left: 8px; right: 8px; top: 8px; z-index: 1000; margin: 0; }
+  #fit { position: absolute; right: 62px; top: 10px; z-index: 1000; padding: 6px 10px; }
   .dicon svg { width: 30px; height: 30px; filter: drop-shadow(0 0 2px #000); }
   .oicon { width: 14px; height: 14px; background: var(--warn); border: 2px solid #000; }
   .leaflet-tooltip.lbl { background: rgba(15, 20, 25, .85); color: var(--text); border: 1px solid var(--line);
     font: 11px ui-monospace, Consolas, monospace; padding: 1px 5px; box-shadow: none; }
   .leaflet-tooltip.lbl::before { display: none; }
-  #boards { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
-  .board { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
-  .board .bh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .board .bn { font-weight: 600; flex: 1; font-family: ui-monospace, Consolas, monospace; }
-  .board .bar { padding: 4px 0 0; }
-  .board button { padding: 5px 10px; font-size: 13px; }
+  #boards { display: flex; flex: 1; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
+  .board { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 2px 4px 2px 8px; font-size: 12px; color: var(--muted); }
+  .board b { color: var(--text); font-weight: 600; }
+  .board .bn { color: var(--text); font-weight: 600; font-family: ui-monospace, Consolas, monospace; }
+  .board button { padding: 2px 8px; font-size: 12px; }
+  #msgs:empty { display: none; }
+  #msgs .note, #msgs .alert { margin: 6px 0 0; padding: 6px 10px; }
+  main { display: grid; gap: 8px; margin-top: 8px; }
+  #side { min-width: 0; }
+  #side .bar { padding: 0 0 6px; }
+  #side .row { margin-top: 8px; }
+  #side .row button { padding: 5px 9px; font-size: 13px; }
+  #sidenote { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  /* tablet poziomo: wszystko na jednym ekranie, przewija się tylko lista */
+  @media (min-width: 900px) {
+    html, body { height: 100%; }
+    body { display: flex; flex-direction: column; overflow: hidden; }
+    main { flex: 1; min-height: 0; grid-template: minmax(0, 1fr) auto / 340px minmax(0, 1fr); grid-template-areas: "side map" "bands bands"; }
+    #mapwrap { grid-area: map; }
+    #map { height: 100%; min-height: 0; }
+    #side { grid-area: side; display: flex; flex-direction: column; min-height: 0; }
+    #sidescroll { flex: 1; min-height: 0; overflow-y: auto; }
+    #bandwrap { grid-area: bands; }
+  }
+  @media (max-width: 899px) {
+    #boards { order: 5; flex: 1 0 100%; }
+    #bandwrap { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1><img src="favicon.png" alt="" class="logo">RID Heltec <small id="devname">nie połączono</small></h1>
-  <span id="conn" class="pill off">rozłączono</span>
+  <h1><img src="favicon.png" alt="" class="logo">RID</h1>
+  <div id="boards"><span id="noboard" class="pill off">nie połączono</span></div>
+  <span id="gps" class="pill">GPS: —</span>
   <button id="connect" class="primary">Połącz</button>
+  <button id="disconnectall" disabled>Rozłącz</button>
+  <button id="addboard" disabled>Dodaj płytkę</button>
 </header>
-<div id="boards"></div>
-
 <div id="support" class="note bad" hidden></div>
-<div id="pinhint" class="note">Przy pierwszym połączeniu telefon zapyta o <b>PIN</b>. Heltec pokazuje go na ekranie
-  w trakcie parowania, CYD na górnym pasku i w Ustawieniach; jest też na stronie RID Decoder (panel Urządzenia).
-  Potem telefon łączy się bez PIN-u. Przyciskiem <b>Dodaj płytkę</b> możesz połączyć kilka płytek naraz (Heltec i CYD).</div>
+<div id="pinhint" class="note" style="margin:6px 0 0;padding:6px 10px">Przy pierwszym połączeniu urządzenie zapyta o <b>PIN</b>. Heltec pokazuje go na ekranie
+  w trakcie parowania, CYD na górnym pasku i w Ustawieniach. Potem łączy się już bez PIN-u.</div>
+<div id="boardhints"></div>
 <div id="alerts"></div>
 
-<div class="bar">
-  <label class="chk"><input type="checkbox" id="sound" checked> dźwięk i wibracja</label>
-  <label class="chk"><input type="checkbox" id="wake"> ekran nie gaśnie</label>
-  <label class="chk"><input type="checkbox" id="hideown"> ukryj swoje</label>
-  <span id="gps">GPS telefonu: —</span>
-</div>
-
-<div class="tabs" id="viewtabs" hidden>
-  <button data-view="map">Mapa</button>
-  <button data-view="radar">Radar</button>
-  <button id="fit" title="Pokaż wszystkie drony i telefon">Dopasuj</button>
-</div>
-<div id="mapwrap" hidden><div id="map"></div><div id="mapmsg" class="note" hidden></div></div>
-<div id="radarwrap" hidden><svg id="radar" viewBox="-110 -110 220 220"></svg></div>
-<div id="list"><div class="empty">Połącz się z płytką Heltec albo CYD, żeby zobaczyć drony w zasięgu.</div></div>
-<div class="row" style="margin-top:10px">
-  <button id="clearlist">Wyczyść listę</button>
-  <button id="histreload" title="Pobierz ponownie historię z pamięci Heltec">Odśwież historię</button>
-  <button id="histclear" class="foreign" title="Kasuje historię dronów zapisaną w Heltec">Wyczyść historię w Heltec</button>
-</div>
-<p class="note" style="color:var(--muted);font-size:13px">
-  Telefon łączy się z płytkami Heltec i CYD (firmware RID 1.5 lub nowszy) przez Bluetooth: na Androidzie w Chrome,
-  na iPhonie w przeglądarce Bluefy. Można połączyć kilka płytek naraz - drony ze wszystkich są na jednej liście.
-  Oznaczenia swój/obcy trafiają do wszystkich połączonych płytek, a z nich na stronę RID Decoder
-  po podłączeniu do komputera. Odległości liczone są z GPS telefonu.
-</p>
+<main>
+  <section id="mapwrap">
+    <div id="map"></div>
+    <div id="mapmsg" class="note" hidden></div>
+    <button id="fit" title="Pokaż wszystkie drony i tablet">Dopasuj</button>
+  </section>
+  <aside id="side">
+    <div class="bar">
+      <label class="chk"><input type="checkbox" id="sound" checked> dźwięk</label>
+      <label class="chk"><input type="checkbox" id="wake"> ekran nie gaśnie</label>
+      <label class="chk"><input type="checkbox" id="hideown"> ukryj swoje</label>
+    </div>
+    <div id="sidescroll">
+    <div id="list"><div class="empty">Połącz się z płytką Heltec albo CYD, żeby zobaczyć drony w zasięgu.</div></div>
+    <div class="row">
+      <button id="clearlist">Wyczyść listę</button>
+      <button id="histreload" title="Pobierz ponownie historię z pamięci Heltec">Odśwież historię</button>
+      <button id="histclear" class="foreign" title="Kasuje historię dronów zapisaną w Heltec">Wyczyść historię</button>
+    </div>
+    <p id="sidenote">Na Androidzie użyj Chrome, na iPhonie Bluefy. Oznaczenia swój/obcy trafiają do wszystkich połączonych płytek. Odległości liczone są z GPS tego urządzenia.</p>
+    </div>
+    <div id="radarwrap"><div id="radarbox"><svg id="radar" viewBox="-110 -110 220 220"></svg><div id="sweep"></div><div id="radarmsg"></div></div></div>
+  </aside>
+  <section id="bandwrap"></section>
+</main>
 
 <script>
 "use strict";
@@ -318,6 +361,7 @@ function onData(b, e) {
     try { msg = JSON.parse(line); } catch { continue; }
     if (msg.d) onDrone(msg.d, b);
     else if (msg.s) { b.status = msg.s; renderBoards(); }
+    else if (msg.cs) { bands[msg.cs.b] = { ...msg.cs, at: Date.now(), from: boardLabel(b) }; renderBand(); }
     else if (msg.tags) { b.tags = msg.tags; combineTags(); render(); }
     else if (msg.h) onHist(b, msg.h);
     else if (msg.hp) onHistPoints(b, msg.hp);
@@ -498,31 +542,28 @@ const distText = (m) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed
 
 function renderBoards() {
   const list = [...boards.values()];
-  const on = list.filter((b) => b.rx).length;
-  $("devname").textContent = !list.length ? "nie połączono" : list.length === 1 ? boardLabel(list[0]) : `płytki: ${on}/${list.length}`;
-  $("conn").textContent = !list.length ? "rozłączono" : on ? "połączono" : "łączę…";
-  $("conn").className = `pill ${on ? "on" : "off"}`;
-  $("connect").textContent = list.length ? "Dodaj płytkę" : "Połącz";
-  $("boards").innerHTML = list.map((b) => {
+  $("connect").disabled = list.length > 0;
+  $("disconnectall").disabled = $("addboard").disabled = !list.length;
+  $("boardhints").innerHTML = list.filter((b) => b.hint).map((b) => `<div class="note bad" style="margin:6px 0 0">${esc(boardLabel(b))}: ${esc(b.hint)}</div>`).join("");
+  $("boards").innerHTML = !list.length ? '<span class="pill off">nie połączono</span>' : list.map((b) => {
     const s = b.status;
     let info = "";
     if (s && b.rx) {
       const bat = s.chg === 2 ? `<b style="color:var(--ok)">pełna ⚡</b>` : s.chg === 1 && s.bmv <= 4300 ? "<b>ładowanie ⚡</b>"
         : s.bat >= 0 ? `<b style="color:${s.bat <= 15 ? "var(--bad)" : s.bat <= 35 ? "var(--warn)" : "var(--ok)"}">${s.bat}%</b>` : "<b>USB</b>";
       const cyd = s.dev === "cyd";
-      info = `<div class="bar"><span>bateria ${bat}</span>
-        <span>${cyd ? `karta SD <b>${s.sd ? s.mem : "brak"}</b>` : `zapisane <b>${s.mem}</b>`}</span>
-        <span>kanał Wi-Fi <b>${s.ch}${s.fixed ? "" : "*"}</b></span>
-        ${cyd ? "" : `<span>Meshtastic <b>${s.mesh ? "nadaje" : "wył."}</b></span>`}
-        ${s.pc ? "<span><b>podłączony do PC</b></span>" : ""}
-        ${s.pend ? `<span>oznaczeń do przeniesienia na stronę: <b>${s.pend}</b></span>` : ""}
-        ${b.histInfo ? `<span>${esc(b.histInfo)}</span>` : ""}</div>`;
+      info = `<span>zasilanie ${bat}</span>
+        <span>${cyd ? `SD <b>${s.sd ? s.mem : "brak"}</b>` : `zapisane <b>${s.mem}</b>`}</span>
+        <span>kanał <b>${s.ch}${s.fixed ? "" : "*"}</b></span>
+        ${cyd ? "" : `<span>LoRa <b>${s.mesh ? "nadaje" : "wył."}</b></span>`}
+        ${s.pc ? "<span><b>PC</b></span>" : ""}
+        ${s.pend ? `<span>oznaczeń do przeniesienia <b>${s.pend}</b></span>` : ""}
+        ${b.histInfo ? `<span>${esc(b.histInfo)}</span>` : ""}`;
     }
     const id = [...boards.entries()].find(([, x]) => x === b)[0];
-    return `<div class="board"><div class="bh"><span class="bn">${esc(boardLabel(b))}</span>
-      <span class="pill ${b.cls}">${esc(b.state || "—")}</span>
-      <button data-board="${esc(id)}" data-bact="${b.want ? "off" : "on"}">${b.want ? "Rozłącz" : "Połącz"}</button></div>
-      ${info}${b.hint ? `<div class="note bad" style="margin:6px 0 0">${esc(b.hint)}</div>` : ""}</div>`;
+    return `<div class="board"><span class="bn">${esc(boardLabel(b))}</span>
+      <span class="pill ${b.cls}">${esc(b.state || "—")}</span>${info}
+      <button data-board="${esc(id)}" data-bact="${b.want ? "off" : "on"}" title="${b.want ? "Rozłącz tę płytkę" : "Połącz tę płytkę"}">${b.want ? "✕" : "Połącz"}</button></div>`;
   }).join("");
 }
 
@@ -624,8 +665,8 @@ function render() {
 
 // ---------------------------------------------------------------- mapa (Leaflet + OpenStreetMap) / radar
 
-let view = store.get("rid-view", "map");
 let map = null, mapLoading = null, mapFailed = false, autoFit = true;
+const bands = {};             // pasmo (2G4, 5G) -> zajętość kanałów z płytki: {c, r, p, at, from}
 const mapLayers = new Map();  // klucz drona -> {drone, op, link, track}
 let meMarker = null, meCircle = null;
 const TAG_COLOR = { own: "#3ccf7a", foreign: "#ff4d4f" };
@@ -733,38 +774,21 @@ function renderMap(list) {
 }
 
 async function renderViews(list) {
-  $("viewtabs").hidden = false;  // mapa widoczna od razu, także bez drona z pozycją i bez GPS telefonu
-  document.querySelectorAll("#viewtabs [data-view]").forEach((b) => b.classList.toggle("sel", b.dataset.view === view));
-  $("fit").hidden = view !== "map";
-  if (view === "map") {
-    $("radarwrap").hidden = true;
-    $("mapwrap").hidden = false;
-    const m = await ensureMap();
-    if (!m) {
-      $("mapmsg").hidden = false;
-      $("mapmsg").textContent = "Mapa niedostępna bez internetu (albo nieobejrzana wcześniej) - użyj radaru.";
-      $("map").style.display = "none";
-      return;
-    }
-    $("map").style.display = "";
-    $("mapmsg").hidden = true;
-    m.invalidateSize();
-    renderMap(list);
-  } else {
-    $("mapwrap").hidden = true;
-    renderRadar(list);
+  renderRadar(list);
+  renderBand();
+  const m = await ensureMap();
+  if (!m) {
+    $("mapmsg").hidden = false;
+    $("mapmsg").textContent = "Mapa niedostępna bez internetu (albo nieobejrzana wcześniej) - radar i lista działają.";
+    $("map").style.visibility = "hidden";
+    return;
   }
+  $("map").style.visibility = "";
+  $("mapmsg").hidden = true;
+  m.invalidateSize();
+  renderMap(list);
 }
 
-$("viewtabs").addEventListener("click", (e) => {
-  const v = e.target.dataset?.view;
-  if (v) {
-    view = v;
-    store.set("rid-view", v);
-    if (v === "map") mapFailed = false;  // może wrócił internet
-    render();
-  }
-});
 $("fit").addEventListener("click", () => { autoFit = true; if (map) map.setZoom(5); render(); });
 
 function renderRadar(list) {
@@ -775,18 +799,21 @@ function renderRadar(list) {
       if (d.olat !== undefined) pts.push({ ...geo(me.lat, me.lon, d.olat, d.olon), kind: "o" });
     }
   }
-  $("radarwrap").hidden = !pts.length;
-  if (!pts.length) return;
+  const noPos = list.filter(({ d }) => d.lat === undefined).length;
+  $("radarmsg").textContent = !me ? "brak GPS tabletu"
+    : noPos ? `bez pozycji: ${noPos}` : "";
+  const SWEEP_MS = 4000, phase = Date.now() % SWEEP_MS;
+  $("sweep").style.animationDelay = `${-phase}ms`;  // kąt wiązki wynika z zegara, więc odświeżanie nie cofa animacji
   const max = Math.max(...pts.map((p) => p.dist), 50);
-  const scale = [50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 10000, 20000].find((s) => s >= max) || max;
+  const scale = pts.length ? [50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 10000, 20000].find((s) => s >= max) || max : 500;
   let svg = "";
   for (let i = 1; i <= 4; i++) {
     const r = (100 * i) / 4;
     svg += `<circle r="${r}" fill="none" stroke="#2a3540" stroke-width="0.6"/>`;
-    svg += `<text x="2" y="${-r + 6}" fill="#8a99a8" font-size="6">${distText((scale * i) / 4)}</text>`;
+    svg += `<text x="2" y="${-r + 6}" fill="#8a99a8" font-size="8">${distText((scale * i) / 4)}</text>`;
   }
   svg += '<line x1="0" y1="-104" x2="0" y2="104" stroke="#2a3540" stroke-width="0.5"/><line x1="-104" y1="0" x2="104" y2="0" stroke="#2a3540" stroke-width="0.5"/>';
-  svg += '<text x="0" y="-103" fill="#3fb6ff" font-size="8" text-anchor="middle">N</text>';
+  svg += '<text x="0" y="-100" fill="#3fb6ff" font-size="10" text-anchor="middle">N</text>';
   svg += '<circle r="3" fill="#3fb6ff"/>';
   for (const p of pts) {
     const r = (100 * p.dist) / scale, a = (p.brg * Math.PI) / 180;
@@ -795,16 +822,35 @@ function renderRadar(list) {
       svg += `<rect x="${x - 2.5}" y="${y - 2.5}" width="5" height="5" fill="#f0b429"/>`;
     } else {
       const c = p.tag === "own" ? "#3ccf7a" : p.tag === "foreign" ? "#ff4d4f" : "#f0b429";
-      svg += `<circle cx="${x}" cy="${y}" r="4.5" fill="${c}" stroke="#000" stroke-width="0.8"/>`;
-      svg += `<text x="${x + 6}" y="${y + 3}" fill="#dbe4ec" font-size="7">${esc(p.label)}</text>`;
+      // dron rozbłyska, gdy mija go wiązka, ale nigdy nie znika
+      const since = (phase - (p.brg / 360) * SWEEP_MS + SWEEP_MS) % SWEEP_MS;
+      svg += `<g class="blip" style="animation-delay:${-since}ms"><circle cx="${x}" cy="${y}" r="4.5" fill="${c}" stroke="#000" stroke-width="0.8"/>`;
+      svg += `<text x="${x + 6}" y="${y + 3}" fill="#dbe4ec" font-size="9">${esc(p.label)}</text></g>`;
     }
   }
   $("radar").innerHTML = svg;
 }
 
+// zajętość kanałów: ile ramek Wi-Fi słychać, a nie widmo radiowe, więc np. ELRS i analogowego wideo tu nie widać
+function renderBand() {
+  const BAND = [["2G4", "Wi-Fi 2,4 GHz"], ["5G", "Wi-Fi 5 GHz"]];
+  $("bandwrap").innerHTML = BAND.map(([id, title]) => {
+    const b = bands[id];
+    if (!b) return `<div class="band"><h4>${title}</h4><div class="bandempty">${id === "5G" ? "Brak danych. To pasmo poda ESP32-C5." : "Brak danych. Połącz płytkę CYD z aktualnym firmware."}</div></div>`;
+    const age = (Date.now() - b.at) / 1000;
+    const cols = b.r.map((rate, i) => {
+      const peak = b.p[i], pct = rate ? Math.min(100, (Math.log10(rate + 1) * 100) / 3) : 0;
+      return `<div class="bcol" title="${rate} ramek/s${peak > -128 ? `, ${peak} dBm` : ""}"><b>${peak > -128 ? peak : ""}</b><div class="bbox"><i style="height:${pct}%"></i></div>${b.c ? b.c[i] : i + 1}</div>`;
+    }).join("");
+    return `<div class="band ${age > 60 ? "stale" : ""}"><h4>${title}<small>${esc(b.from)}, ${Math.round(age)} s temu</small></h4><div class="bchart">${cols}</div></div>`;
+  }).join("") + `<div id="bandnote">Słupek: ramki Wi-Fi na sekundę (skala logarytmiczna), liczba: najsilniejszy sygnał w dBm. To zajętość kanałów Wi-Fi, a nie widmo: aparatur ELRS ani analogowego wideo tu nie widać.</div>`;
+}
+
 // ---------------------------------------------------------------- obsługa
 
 $("connect").addEventListener("click", connect);
+$("addboard").addEventListener("click", connect);
+$("disconnectall").addEventListener("click", () => [...boards.values()].forEach(disconnect));
 $("hideown").addEventListener("change", render);
 $("clearlist").addEventListener("click", () => { drones.clear(); render(); });
 $("histreload").addEventListener("click", () => sendAll("HIST"));
