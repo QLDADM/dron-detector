@@ -13,10 +13,10 @@ const RidViews = (() => {
   const hTxt = (p) => `↑${p.h != null ? `${Math.round(p.h)} m` : "?"} · ↔${distText(p.dist)}`;
   const color = (tag) => (tag === "own" ? "#3ccf7a" : tag === "foreign" ? "#ff4d4f" : "#f0b429");
 
-  // Zasięg dobierany do dronów, najwyżej 10 km (dalej anteny i tak nie łapią): najmniejszy stopień, w którym
+  // Zasięg dobierany do dronów, najwyżej 5 km (dalej anteny i tak nie łapią): najmniejszy stopień, w którym
   // najdalszy dron z aktualnym sygnałem jest najwyżej na ~85% promienia. Stary wpis z historii skali nie rozciąga.
-  // Drony dalej niż 10 km nie są rysowane - strona pokazuje ich liczbę jako "poza skalą".
-  const SCALES = [500, 1000, 2000, 3000, 5000, 10000];
+  // Drony dalej niż 5 km nie są rysowane - strona pokazuje ich liczbę jako "poza skalą".
+  const SCALES = [500, 1000, 2000, 3000, 5000];
   function pickScale(pts) {
     const fresh = pts.filter((p) => p.fresh);
     if (!fresh.length) return 1000;
