@@ -845,7 +845,7 @@ function renderBand() {
   const BAND = [["2G4", "Wi-Fi 2,4 GHz"], ["5G", "Wi-Fi 5 GHz"]];
   $("bandwrap").innerHTML = BAND.map(([id, title]) => {
     const b = bands[id];
-    if (!b) return `<div class="band"><h4>${title}</h4><div class="bandempty">${id === "5G" ? "Brak danych. To pasmo poda ESP32-C5." : "Brak danych. Połącz płytkę CYD z aktualnym firmware."}</div></div>`;
+    if (!b) return `<div class="band"><h4>${title}</h4><div class="bandempty">Brak danych. To pasmo poda ESP32-C5 nr ${id === "5G" ? 2 : 1}.</div></div>`;
     const age = (Date.now() - b.at) / 1000;
     const cols = b.r.map((rate, i) => {
       const peak = b.p[i], pct = rate ? Math.min(100, (Math.log10(rate + 1) * 100) / 3) : 0;
