@@ -13,15 +13,10 @@ const RidViews = (() => {
   const hTxt = (p) => `↑${p.h != null ? `${Math.round(p.h)} m` : "?"} · ↔${distText(p.dist)}`;
   const color = (tag) => (tag === "own" ? "#3ccf7a" : tag === "foreign" ? "#ff4d4f" : "#f0b429");
 
-  // Skala co 10 km, najmniej 30 km od Twojej pozycji (decyzja użytkownika). Wyznaczają ją tylko drony
-  // ze świeżym sygnałem (stary wpis z historii nie może jej rozciągać), z zapasem 15%: najdalszy dron
-  // jest najwyżej na ~85% promienia, a nie na krawędzi.
-  const MIN_SCALE = 30000;
-  function pickScale(pts) {
-    const fresh = pts.filter((p) => p.fresh);
-    const need = Math.max(0, ...fresh.map((p) => p.dist)) * 1.15;
-    return Math.max(MIN_SCALE, Math.ceil(need / 10000) * 10000);
-  }
+  // Stały zasięg 10 km od Twojej pozycji (decyzja użytkownika: dalej anteny i tak nie łapią).
+  // Dalsze drony nie są rysowane - strona pokazuje ich liczbę jako "poza skalą".
+  const SCALE_M = 10000;
+  const pickScale = () => SCALE_M;
 
   // Odległość -> promień rysunku (0..100). Skala logarytmiczna: bliskie drony nie zlewają się ze środkiem
   // przy zasięgu 30 km (300 m to ~24% promienia, 1 km ~42%, 10 km ~81%). Liniowa tylko pod mapą,
