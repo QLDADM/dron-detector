@@ -86,6 +86,9 @@
   .bcol .bbox { height: 64px; display: flex; flex-direction: column; justify-content: flex-end; background: var(--panel2); border-radius: 3px; }
   .bcol i { display: block; background: var(--accent); border-radius: 3px 3px 0 0; }
   .bcol b { display: block; color: var(--text); font-weight: 400; height: 13px; }
+  /* kanał, na którym teraz słychać drona */
+  .bcol.hit { color: var(--bad); font-weight: 700; }
+  .bcol.hit .bbox { box-shadow: inset 0 0 0 2px var(--bad); }
   .bandempty { color: var(--muted); font-size: 13px; text-align: center; padding: 28px 0; }
   .card { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--warn);
     border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
@@ -860,16 +863,19 @@ document.querySelectorAll(".popout").forEach((b) => b.addEventListener("click", 
 // zajętość kanałów: ile ramek Wi-Fi słychać, a nie widmo radiowe, więc np. ELRS i analogowego wideo tu nie widać
 function renderBand() {
   const BAND = [["2G4", "Wi-Fi 2,4 GHz"], ["5G", "Wi-Fi 5 GHz"]];
+  // kanały, na których teraz słychać drona (płytka podaje kanał ostatniej ramki Wi-Fi)
+  const hit = new Set([...drones.values()].filter((d) => d.ch && (Date.now() - d.seen) / 1000 <= STALE_S).map((d) => d.ch));
   $("bandwrap").innerHTML = BAND.map(([id, title]) => {
     const b = bands[id];
     if (!b) return `<div class="band"><h4>${title}</h4><div class="bandempty">Brak danych. To pasmo poda ESP32-C5 nr ${id === "5G" ? 2 : 1}.</div></div>`;
     const age = (Date.now() - b.at) / 1000;
     const cols = b.r.map((rate, i) => {
       const peak = b.p[i], pct = rate ? Math.min(100, (Math.log10(rate + 1) * 100) / 3) : 0;
-      return `<div class="bcol" title="${rate} ramek/s${peak > -128 ? `, ${peak} dBm` : ""}"><b>${peak > -128 ? peak : ""}</b><div class="bbox"><i style="height:${pct}%"></i></div>${b.c ? b.c[i] : i + 1}</div>`;
+      const ch = b.c ? b.c[i] : i + 1, on = hit.has(ch);
+      return `<div class="bcol${on ? " hit" : ""}" title="${on ? "dron na tym kanale · " : ""}${rate} ramek/s${peak > -128 ? `, ${peak} dBm` : ""}"><b>${peak > -128 ? peak : ""}</b><div class="bbox"><i style="height:${pct}%"></i></div>${ch}</div>`;
     }).join("");
     return `<div class="band ${age > 60 ? "stale" : ""}"><h4>${title}<small>${esc(b.from)}, ${Math.round(age)} s temu</small></h4><div class="bchart">${cols}</div></div>`;
-  }).join("") + `<div id="bandnote">Słupek: ramki Wi-Fi na sekundę (skala logarytmiczna), liczba: najsilniejszy sygnał w dBm. To zajętość kanałów Wi-Fi, a nie widmo: aparatur ELRS ani analogowego wideo tu nie widać.</div>`;
+  }).join("") + `<div id="bandnote">Słupek: ramki Wi-Fi na sekundę (skala logarytmiczna), liczba: najsilniejszy sygnał w dBm. To zajętość kanałów Wi-Fi, a nie widmo: aparatur ELRS ani analogowego wideo tu nie widać. Czerwony kanał: teraz słychać na nim drona.</div>`;
 }
 
 // ---------------------------------------------------------------- obsługa
