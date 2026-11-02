@@ -46,9 +46,22 @@ Po połączeniu strona pobiera też historię dronów, które płytka zapisała,
 
 ## Co widać na stronie
 
+Na tablecie albo komputerze (ekran szerszy niż 900 px) wszystko jest na jednym ekranie: u góry pasek z płytkami
+i przyciskami **Połącz / Rozłącz / Dodaj płytkę**, po lewej lista dronów, w środku mapa, po prawej widok 3D i radar,
+na dole panele pasm Wi-Fi. Na telefonie te same części są jedna pod drugą.
+
 - **Model** (znane kody DJI), klasa i kategoria UE, typ statku, opis operatora, numer operatora, prędkość pionowa, maksima lotu oraz ostrzeżenia: ponad 120 m i zanik sygnału w locie.
 - **Lista dronów** z ID, wysokością, prędkością, siłą sygnału, odległością i kierunkiem od telefonu oraz danymi operatora.
-- **Radar i mapa** z położeniem dronów, operatorów i Twoim.
+  Na górze jest najbliższy aktywny dron (drony bez pozycji według siły sygnału), niżej nieaktywne.
+- **Mapa** z położeniem dronów, operatorów i Twoim. Przy dronie: nazwa, wysokość i odległość od Ciebie (`↑85 m · ↔250 m`).
+- **Radar** w stylu wskaźnika wojskowego: Ty w środku, siatka odległości, podziałka azymutu co 5°, obracająca się wiązka.
+  Skalę wyznaczają drony z aktualnym sygnałem. Wiązka jest tylko wizualna: pozycje pochodzą z Remote ID i GPS telefonu.
+- **Widok 3D**: drony na swojej wysokości nad ziemią wokół Ciebie, operatorzy na ziemi połączeni linią z dronem.
+  Wysokość ma osobną, powiększoną skalę. Przeciąganie palcem obraca widok i zmienia nachylenie.
+- **Pełny widok** (przycisk ⤢ przy radarze i widoku 3D): radar, widok 3D albo oba w nowej karcie, na cały ekran,
+  z podkładem mapy (OSM albo satelita, z suwakiem jasności). Dane przychodzą z karty głównej, więc ona musi zostać otwarta.
+- **Pasma Wi-Fi 2,4 i 5 GHz**: zajętość kanałów (ramki na sekundę i najsilniejszy sygnał). Wypełniają się, gdy płytka
+  przyśle takie dane (planowane czujniki ESP32-C5). To nie jest widmo radiowe: aparatur ELRS ani analogowego wideo tu nie widać.
 - Przyciski **Swój / Obcy**. Swoje drony nie wywołują alarmu.
 - **Alarm** (dźwięk i wibracja) przy nowym, nieoznaczonym dronie.
 - **Historia** lotów zapisana w płytce.
@@ -72,6 +85,7 @@ Połączenie wymaga sparowania PIN-em i jest szyfrowane, więc obcy telefon nie 
 ## Zawartość repozytorium
 
 - `index.html`, `sw.js`, `manifest.webmanifest` i ikony: strona podglądu, publikowana przez GitHub Pages.
+- `radar.js`: rysunek radaru i widoku 3D (wspólny ze stroną RID Decoder), `view.html`: pełny widok w osobnej karcie.
 - [firmware/](firmware/): kod źródłowy firmware dla Heltec V3 i instrukcja wgrywania.
 - [Releases](https://github.com/QLDADM/rid-heltec/releases): gotowe pliki firmware do wgrania.
 
