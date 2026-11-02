@@ -42,7 +42,8 @@
   .alert { background: var(--bad); color: #fff; border-radius: 10px; padding: 10px 12px; margin: 10px 0;
     font-weight: 600; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
   .alert button { background: rgba(0,0,0,.25); color: #fff; border-color: rgba(255,255,255,.4); padding: 5px 10px; }
-  #radarwrap { flex: none; width: min(250px, 100%); margin: 8px auto 0; background: var(--panel); border: 1px solid var(--line); border-radius: 50%; }
+  #radarwrap { position: absolute; right: 8px; bottom: 8px; width: min(240px, 42%); z-index: 900; pointer-events: none;
+    background: rgba(15, 20, 25, .88); border: 1px solid var(--line); border-radius: 50%; }
   #radar { width: 100%; height: auto; display: block; aspect-ratio: 1; }
   #radarbox { position: relative; }
   /* wiązka tylko wizualna: nic nie skanuje kierunku, pozycje dronów pochodzą z ich Remote ID */
@@ -149,6 +150,7 @@
     <div id="map"></div>
     <div id="mapmsg" class="note" hidden></div>
     <button id="fit" title="Pokaż wszystkie drony i tablet">Dopasuj</button>
+    <div id="radarwrap"><div id="radarbox"><svg id="radar" viewBox="-110 -110 220 220"></svg><div id="sweep"></div><div id="radarmsg"></div></div></div>
   </section>
   <aside id="side">
     <div class="bar">
@@ -165,7 +167,6 @@
     </div>
     <p id="sidenote">Na Androidzie użyj Chrome, na iPhonie Bluefy. Oznaczenia swój/obcy trafiają do wszystkich połączonych płytek. Odległości liczone są z GPS tego urządzenia.</p>
     </div>
-    <div id="radarwrap"><div id="radarbox"><svg id="radar" viewBox="-110 -110 220 220"></svg><div id="sweep"></div><div id="radarmsg"></div></div></div>
   </aside>
   <section id="bandwrap"></section>
 </main>
@@ -696,6 +697,7 @@ async function ensureMap() {
     return null;
   }
   map = L.map("map", { zoomControl: true, attributionControl: true }).setView([52.1, 19.4], 6);
+  map.attributionControl.setPosition("bottomleft");  // prawy dolny róg zajmuje radar
   // podkłady mapy; wybór zapamiętany w telefonie
   const bases = {
     "OpenStreetMap": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }),
