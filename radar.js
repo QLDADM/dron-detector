@@ -10,16 +10,22 @@ const RidViews = (() => {
   // wielkość znaków drona liczona z rozmiaru rysunku na ekranie: te same piksele w małym panelu i na pełnym ekranie
   const fit = (px, k, min, max) => Math.min(max, Math.max(min, px / (k || 1e-6)));
   const unitPx = (svg, w, h) => Math.min(svg.clientWidth / w, svg.clientHeight / h);
-  const hTxt = (p) => `↑${p.h != null ? `${Math.round(p.h)} m` : "?"} · ↔${distText(p.dist)}`;
+  // ↑ wysokość z Remote ID; AGL (nad terenem, z modelu GUGiK) tylko gdy znana - bez internetu jej nie ma
+  const hTxt = (p) => `↑${p.h != null ? `${Math.round(p.h)} m` : "?"}${p.agl != null ? ` · AGL ${Math.round(p.agl)} m` : ""} · ↔${distText(p.dist)}`;
+  const zH = (p) => p.agl ?? p.h;  // widok 3D: wysokość nad terenem, gdy znana
   // "1 dron", "2 drony", "5 dronów" - napisy na radarze
   const dronesText = (n) => `${n} ${n === 1 ? "dron" : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? "drony" : "dronów"}`;
   const OP = "#c77dff";  // operator: fiolet, żeby nie mylił się z dronem nieoznaczonym (żółty)
-  const color = (tag) => (tag === "own" ? "#3ccf7a" : tag === "foreign" ? "#ff4d4f" : "#f0b429");
+  // kolory dronów nasycone, żeby było je widać na ciemnym radarze i na jasnej mapie (te same odcienie co w legendzie)
+  const color = (tag) => (tag === "own" ? "#00e676" : tag === "foreign" ? "#ff1744" : "#ffab00");
+  // kropka drona: kolor, czarna obwódka i biała otoczka - odcina się od każdego tła
+  const dot = (x, y, r, c) => `<circle cx="${x}" cy="${y}" r="${(r * 1.3).toFixed(2)}" fill="none" stroke="#fff" stroke-width="${(r * 0.3).toFixed(2)}"/>`
+    + `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" stroke="#000" stroke-width="${(r * 0.28).toFixed(2)}"/>`;
 
-  // Zasięg dobierany do dronów, najwyżej 5 km (dalej anteny i tak nie łapią): najmniejszy stopień, w którym
+  // Zasięg dobierany do dronów, najwyżej 3 km (dalej anteny i tak nie łapią): najmniejszy stopień, w którym
   // najdalszy dron z aktualnym sygnałem jest najwyżej na ~85% promienia. Stary wpis z historii skali nie rozciąga.
-  // Drony dalej niż 5 km nie są rysowane - strona pokazuje ich liczbę jako "poza skalą".
-  const SCALES = [500, 1000, 2000, 3000, 5000];
+  // Drony dalej niż 3 km nie są rysowane - strona pokazuje ich liczbę jako "poza skalą".
+  const SCALES = [500, 1000, 2000, 3000];
   function pickScale(pts) {
     const fresh = pts.filter((p) => p.fresh);
     if (!fresh.length) return 1000;
@@ -29,7 +35,8 @@ const RidViews = (() => {
 
   // odległość -> promień rysunku (0..100) i pierścienie co 1/4 zasięgu
   const radial = (d, scale) => (100 * d) / scale;
-  const rings = (scale) => [1, 2, 3, 4].map((i) => (scale * i) / 4);
+  // co 1/4 zasięgu, a przy 3 km co 1 km (zamiast 750 m / 2,25 km)
+  const rings = (scale) => (scale === 3000 ? [1000, 2000, 3000] : [1, 2, 3, 4].map((i) => (scale * i) / 4));
 
   // radar jako największe koło, jakie mieści się w swoim polu
   function fitRadar(box, wrap) {
@@ -106,7 +113,7 @@ const RidViews = (() => {
   const sweeps = new WeakMap();
   // przejście wiązki: kropka rozbłyska i przygasa do następnego obrotu, od drona rozchodzi się pierścień
   const BLIP = [{ opacity: 1, filter: "brightness(1.8) drop-shadow(0 0 3px #fff)" }, { opacity: 1, filter: "none", offset: 0.12 },
-    { opacity: 0.4, filter: "none" }];
+    { opacity: 0.8, filter: "none" }];  // przygasa tylko lekko - dron ma być widoczny cały obrót
   const PING = [{ transform: "scale(.35)", opacity: 0.95, easing: "ease-out" }, { transform: "scale(1)", opacity: 0, offset: 0.22 },
     { transform: "scale(1)", opacity: 0 }];
   const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -129,9 +136,11 @@ const RidViews = (() => {
       }
       const halo = `stroke="#02100a" stroke-width="${(fs * 0.28).toFixed(2)}" paint-order="stroke" font-family="monospace"`;
       s += `<circle class="ping" data-brg="${p.brg.toFixed(1)}" cx="${x}" cy="${y}" r="${r0 * 2.6}" fill="none" stroke="${color(p.tag)}" stroke-width="${r0 * 0.35}" opacity="0"/>`;
-      s += `<g opacity="${p.fresh ? 1 : 0.4}"><g class="blip" data-brg="${p.brg.toFixed(1)}"><circle cx="${x}" cy="${y}" r="${r0}" fill="${color(p.tag)}" stroke="#000" stroke-width="${r0 * 0.18}"/>`;
+      s += `<g opacity="${p.fresh ? 1 : 0.4}"><g class="blip" data-brg="${p.brg.toFixed(1)}">${dot(x, y, r0, color(p.tag))}`;
       s += `<text x="${x + r0 + 1.5}" y="${y - fs * 0.15}" fill="#dbe4ec" font-size="${fs}" ${halo}>${esc(p.label)}</text>`;
-      s += `<text x="${x + r0 + 1.5}" y="${y + fs * 0.85}" fill="#9fe8bd" font-size="${(fs * 0.85).toFixed(2)}" ${halo}>${hTxt(p)}</text></g></g>`;
+      s += `<text x="${x + r0 + 1.5}" y="${y + fs * 0.85}" fill="#9fe8bd" font-size="${(fs * 0.85).toFixed(2)}" ${halo}>${hTxt(p)}</text>`;
+      if (p.op != null) s += `<text x="${x + r0 + 1.5}" y="${y + fs * 1.75}" fill="${OP}" font-size="${(fs * 0.85).toFixed(2)}" ${halo}>🎮 ${distText(p.op)}</text>`;
+      s += "</g></g>";
     }
     svg.innerHTML = s;
     // rozbłyski startują od startu wiązki przesuniętego o kierunek drona - zgrane z nią co do klatki,
@@ -148,14 +157,14 @@ const RidViews = (() => {
   // przeciąganie obraca widok (w poziomie) i zmienia nachylenie (w pionie)
   let v3count = 0;
   function view3d(svg, info) {
-    const V = { pts: [], scale: 500, msg: "", az: 0, el: 32, drag: null, me: null, layer: "" };
+    const V = { pts: [], scale: 500, msg: "", az: 0, el: 32, drag: null, me: null, layer: "", top: null, topEl: null };
     const clip = `v3clip${++v3count}`;
     svg.innerHTML = `<defs><clipPath id="${clip}"><circle r="100"/></clipPath></defs><g class="v3map"><g clip-path="url(#${clip})"></g></g><g class="v3fg"></g>`;
     const mapT = svg.querySelector(".v3map"), mapG = mapT.firstChild, fg = svg.querySelector(".v3fg");
     function draw() {
       const R = 100, HZ = 75;
       const sa = Math.sin(V.az * RAD), ca = Math.cos(V.az * RAD), se = Math.sin(V.el * RAD), ce = Math.cos(V.el * RAD);
-      const hMax = Math.max(150, Math.ceil(Math.max(0, ...V.pts.map((p) => p.h || 0)) / 50) * 50);
+      const hMax = Math.max(150, Math.ceil(Math.max(0, ...V.pts.map((p) => zH(p) || 0)) / 50) * 50);
       // x na wschód, y na północ, z w górę -> punkt na ekranie; d = głębokość (rysujemy od najdalszych)
       const P = (x, y, z) => {
         const X = x * ca - y * sa, Y = x * sa + y * ca;
@@ -195,7 +204,7 @@ const RidViews = (() => {
       const items = [], tops = new Map();
       for (const p of V.pts) {
         const r = radial(p.dist, V.scale), x = r * Math.sin(p.brg * RAD), y = r * Math.cos(p.brg * RAD);
-        const z = p.kind === "d" ? (HZ * Math.min(p.h || 0, hMax)) / hMax : 0;
+        const z = p.kind === "d" ? (HZ * Math.max(0, Math.min(zH(p) || 0, hMax))) / hMax : 0;
         const it = { p, g: P(x, y, 0), t: P(x, y, z) };
         items.push(it);
         if (p.kind === "d") tops.set(p.n, it.t);
@@ -215,15 +224,23 @@ const RidViews = (() => {
         const c = color(p.tag);
         s += `<g opacity="${op}"><ellipse cx="${g.x}" cy="${g.y}" rx="3" ry="${(3 * se).toFixed(1)}" fill="${c}" fill-opacity=".35"/>
           <line x1="${g.x}" y1="${g.y}" x2="${t.x}" y2="${t.y}" stroke="${c}" stroke-width="0.7" stroke-dasharray="1.5 1.5"/>
-          <circle cx="${t.x}" cy="${t.y}" r="${r0}" fill="${c}" stroke="#000" stroke-width="${r0 * 0.2}"/>
+          ${dot(t.x, t.y, r0, c)}
           <text x="${t.x + r0 + 1.5}" y="${t.y - fs * 0.15}" fill="#dbe4ec" font-size="${fs}" ${lhalo}>${esc(p.label)}</text>
-          <text x="${t.x + r0 + 1.5}" y="${t.y + fs * 0.85}" fill="#9fe8bd" font-size="${(fs * 0.85).toFixed(2)}" ${lhalo}>${hTxt(p)}</text></g>`;
+          <text x="${t.x + r0 + 1.5}" y="${t.y + fs * 0.85}" fill="#9fe8bd" font-size="${(fs * 0.85).toFixed(2)}" ${lhalo}>${hTxt(p)}</text>
+          ${p.op != null ? `<text x="${t.x + r0 + 1.5}" y="${t.y + fs * 1.75}" fill="${OP}" font-size="${(fs * 0.85).toFixed(2)}" ${lhalo}>🎮 ${distText(p.op)}</text>` : ""}</g>`;
       }
       if (V.msg) s += `<text x="0" y="${(R * 1.1 * se).toFixed(1)}" fill="#9fe8bd" font-size="9" text-anchor="middle" ${halo}>${esc(V.msg)}</text>`;
       fg.innerHTML = s;
       // kadr dopasowany do sceny przy danym nachyleniu: bez pustych marginesów, a wysokie drony się mieszczą
       let top = Math.min(-R * 1.1 * se - 7, -HZ * ce - 6);
       for (const { p, t } of items) if (p.kind === "d") top = Math.min(top, t.y - fs * 1.3);
+      // bez drgania: kadr rośnie od razu (wyższy dron musi się zmieścić), maleje dopiero przy dużym zapasie,
+      // skokami co 10 jednostek; przy zmianie nachylenia liczony od nowa
+      if (V.top === null || V.topEl !== V.el || top < V.top || top > V.top + 25) {
+        V.top = Math.floor(top / 10) * 10;
+        V.topEl = V.el;
+      }
+      top = V.top;
       const bottom = R * 1.1 * se + 8, half = R * 1.1 + 9;
       svg.setAttribute("viewBox", `${-half} ${top.toFixed(1)} ${2 * half} ${(bottom - top).toFixed(1)}`);
       if (info) info.textContent = `wysokość do ${hMax} m`;

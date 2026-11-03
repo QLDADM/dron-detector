@@ -2,9 +2,10 @@
 
 Repozytorium do 2.11.2026 nazywało się `rid-heltec`. Stary adres strony już nie działa, obecny jest niżej.
 
-Płytka **Heltec WiFi LoRa 32 V3** odbiera sygnał Remote ID, który nadają drony.
-Telefon łączy się z nią przez Bluetooth i pokazuje drony w okolicy: odległość i kierunek od Ciebie,
-radar, mapę, wysokość, prędkość, położenie operatora oraz oznaczenia swój/obcy.
+Główne repozytorium projektu **Dron Detector**: strona podglądu dla telefonu i tabletu oraz firmware dla płytki
+**Heltec WiFi LoRa 32 V3**. Płytki (Heltec, CYD, M5) odbierają sygnał Remote ID, który nadają drony, a strona łączy się
+z nimi przez Bluetooth i pokazuje drony w okolicy: odległość i kierunek od Ciebie, mapę, radar, widok 3D, wysokość
+(także nad terenem), prędkość, położenie operatora oraz oznaczenia swój/obcy.
 
 ## ▶ Otwórz podgląd na telefonie: **https://qldadm.github.io/dron-detector/**
 
@@ -57,11 +58,18 @@ na dole panele pasm Wi-Fi. Na telefonie te same części są jedna pod drugą.
 - **Model** (znane kody DJI), klasa i kategoria UE, typ statku, opis operatora, numer operatora, prędkość pionowa, maksima lotu oraz ostrzeżenia: ponad 120 m i zanik sygnału w locie.
 - **Lista dronów** z ID, wysokością, prędkością, siłą sygnału, odległością i kierunkiem od telefonu oraz danymi operatora.
   Na górze jest najbliższy aktywny dron (drony bez pozycji według siły sygnału), niżej nieaktywne.
-- **Mapa** z położeniem dronów, operatorów (fioletowe) i Twoim. Przy dronie: nazwa, wysokość i odległość od Ciebie (`↑85 m · ↔250 m`).
+- **Mapa** z położeniem dronów, operatorów (fioletowe) i Twoim. Przy dronie: nazwa, wysokość, AGL, odległość od Ciebie
+  i do operatora.
+- **Wysokość nad terenem (AGL)**: gdy urządzenie ma internet, strona pobiera wysokość terenu pod dronem z numerycznego
+  modelu terenu GUGiK i pokazuje ją obok wysokości z Remote ID. Bez internetu jest tylko wysokość z Remote ID.
+  Dokładność zależy od wysokości podawanej przez drona (zwykle ±10 m). Działa w Polsce.
+- **Twoja pozycja**: z GPS urządzenia. Znacznik **GPS** w nagłówku miga na czerwono, dopóki pozycji nie ma. Na komputerze
+  bez GPS ustawisz ją ikoną **📍** na mapie (ikona, potem kliknięcie miejsca); przycisk **✖** pod nią ją kasuje.
 - **Radar** w stylu wskaźnika wojskowego: Ty w środku, siatka odległości, podziałka azymutu co 5°, obracająca się wiązka.
-  Zasięg dobiera się sam do dronów z aktualnym sygnałem (500 m, 1, 2, 3 albo 5 km); dalsze drony radar podaje
-  jako „poza skalą”. Gdy wiązka mija drona, kropka rozbłyskuje i rozchodzi się od niej pierścień.
-  Kolory: zielony swój, czerwony obcy, żółty nieoznaczony, fioletowy kwadrat operator.
+  Zasięg dobiera się sam do dronów z aktualnym sygnałem (500 m, 1, 2 albo 3 km); dalsze drony radar podaje
+  jako „1 dron poza skalą”, a drony bez pozycji jako „1 dron bez pozycji”. Gdy wiązka mija drona, kropka rozbłyskuje
+  i rozchodzi się od niej pierścień. Kolory: zielony swój, czerwony obcy, żółty nieoznaczony, fioletowy kwadrat operator.
+  Przy dronie: wysokość, AGL, odległość od Ciebie i odległość do operatora (`↑45 m · AGL 47 m · ↔120 m · 🎮 89 m`).
   Wiązka jest tylko wizualna: pozycje pochodzą z Remote ID i GPS telefonu.
 - **Widok 3D**: drony na swojej wysokości nad ziemią wokół Ciebie, operatorzy na ziemi połączeni linią z dronem.
   Wysokość ma osobną, powiększoną skalę. Przeciąganie palcem obraca widok i zmienia nachylenie.
@@ -93,7 +101,8 @@ Połączenie wymaga sparowania PIN-em i jest szyfrowane, więc obcy telefon nie 
 ## Zawartość repozytorium
 
 - `index.html`, `sw.js`, `manifest.webmanifest` i ikony: strona podglądu, publikowana przez GitHub Pages.
-- `radar.js`: rysunek radaru i widoku 3D (wspólny ze stroną RID Decoder), `view.html`: pełny widok w osobnej karcie.
+- `radar.js`: rysunek radaru i widoku 3D (wspólny ze stroną RID Decoder), `view.html`: pełny widok w osobnej karcie,
+  `agl.js`: wysokość nad terenem (model terenu GUGiK, geoida EGM2008 dla Polski).
 - [firmware/](firmware/): kod źródłowy firmware dla Heltec V3 i instrukcja wgrywania.
 - [Releases](https://github.com/QLDADM/dron-detector/releases): gotowe pliki firmware do wgrania.
 
@@ -102,9 +111,19 @@ Połączenie wymaga sparowania PIN-em i jest szyfrowane, więc obcy telefon nie 
 Przycisk **Dodaj płytkę** łączy kolejne płytki: Heltec i [CYD](https://github.com/QLDADM/rid-cyd). Każda ma własny
 wiersz ze stanem, a drony ze wszystkich są na jednej liście i mapie, z informacją, która płytka je widzi.
 
-## Inne wykrywacze z tym samym firmware (wersja 1.6)
+## Projekt Dron Detector
 
-- [RID CYD](https://github.com/QLDADM/rid-cyd): płytka ESP32-2432S028 z kolorowym ekranem dotykowym 2,8", radarem i zapisem na kartę SD.
-- [RID M5](https://github.com/QLDADM/rid-m5): M5StickC Plus2, mały osobisty alarm z brzęczykiem i trybem szukania drona.
+To repozytorium jest częścią projektu **Dron Detector** - pasywnego systemu wykrywania dronów. Wszystkie części tylko **odbierają** sygnały - nic nie nadają w stronę drona.
+
+| Część | Rola | Gdzie |
+|---|---|---|
+| **Strona podglądu** (telefon, tablet, komputer) | lista dronów, mapa, radar, widok 3D, wysokość nad terenem (AGL), pasma Wi-Fi | [dron-detector](https://github.com/QLDADM/dron-detector), **https://qldadm.github.io/dron-detector/** |
+| **Heltec V3** | samodzielny wykrywacz Remote ID, alarmy LoRa do aplikacji Meshtastic | [dron-detector/firmware](https://github.com/QLDADM/dron-detector/tree/main/firmware) |
+| **CYD** (ESP32-2432S028) | centrala systemu w walizce: ekran dotykowy, karta SD, czujniki ESP32-C5, Bluetooth do tabletu | [rid-cyd](https://github.com/QLDADM/rid-cyd) |
+| **ESP32-C5** (2 szt., anteny zewnętrzne) | czujniki Remote ID na Wi-Fi 2,4 GHz i 5 GHz, podłączone przewodem do CYD | firmware w przygotowaniu |
+| **M5StickC Plus2** | osobisty alarm w kieszeni, tryb szukania drona po sile sygnału | [rid-m5](https://github.com/QLDADM/rid-m5) |
+| **Quansheng UV-K5** | wykrywanie łączy sterowania ELRS / Crossfire (433 / 868 / 915 MHz) i wideo FPV 1,2 GHz | [dron-k5](https://github.com/QLDADM/dron-k5) |
+
+Firmware Heltec, CYD i M5 ma wspólny numer wersji (1.6), a strona podglądu własny (1.0).
 
 Oznaczenia swój/obcy są wspólne dla wszystkich urządzeń, gdy łączy je agent RID Decoder na komputerze.

@@ -5,7 +5,7 @@
 const CACHE = "dron-detector-1.0";
 const TILES = "rid-tiles-v1";
 const MAX_TILES = 1500;  // ok. 20-40 MB
-const FILES = ["./", "index.html", "radar.js", "view.html", "manifest.webmanifest", "favicon.png", "icon-192.png", "icon-512.png", "nosleep.mp4"];
+const FILES = ["./", "index.html", "radar.js", "agl.js", "view.html", "manifest.webmanifest", "favicon.png", "icon-192.png", "icon-512.png", "nosleep.mp4"];
 
 self.addEventListener("install", (e) => {
   // cache: "reload" - prosto z serwera; GitHub Pages pozwala przeglądarce trzymać pliki 10 min (max-age=600)
@@ -44,6 +44,7 @@ self.addEventListener("fetch", (e) => {
     e.respondWith(cacheFirst(e.request, TILES));
     return;
   }
+  if (url.hostname === "services.gugik.gov.pl") return;  // wysokość terenu: tylko z internetem, bez zapisu
   if (url.hostname === "unpkg.com") {
     e.respondWith(cacheFirst(e.request, CACHE));
     return;
