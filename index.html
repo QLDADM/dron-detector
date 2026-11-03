@@ -112,6 +112,7 @@
   .row a { color: var(--accent); }
   .empty { color: var(--muted); text-align: center; padding: 26px 8px; }
   label.chk { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 5px; }
+  select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 2px 4px; font-size: 13px; }
   #mapwrap { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; }
   #map { height: 55vh; min-height: 280px; background: #0b0f13; }
   #mapmsg { position: absolute; left: 8px; right: 8px; top: 8px; z-index: 1000; margin: 0; }
@@ -190,6 +191,8 @@
       <label class="chk"><input type="checkbox" id="sound" checked> dźwięk</label>
       <label class="chk"><input type="checkbox" id="wake"> ekran nie gaśnie</label>
       <label class="chk"><input type="checkbox" id="hideown"> ukryj swoje</label>
+      <label class="chk" title="Drony bez sygnału dłużej znikają z listy (oprócz przypiętych 📌 i historii z płytki)">usuń nieaktywne po
+        <select id="ttl"><option value="300">5 min</option><option value="1800">30 min</option><option value="0">nigdy</option></select></label>
     </div>
     <div id="sidescroll">
     <div id="list"><div class="empty">Połącz się z płytką Heltec albo CYD, żeby zobaczyć drony w zasięgu.</div></div>
@@ -239,6 +242,7 @@ const boards = new Map();      // id urządzenia Bluetooth -> {device, rx, buffe
 let drones = new Map();        // klucz -> {..dane z płytki, seen: ms, first: ms}
 let tags = {};                 // UAS ID -> own | foreign (suma oznaczeń z płytek)
 let names = store.get("rid-names", {});  // UAS ID -> nazwa (tylko na tym telefonie)
+let pinned = new Set(store.get("rid-pinned", []));  // drony przypięte 📌 - zostają na liście mimo braku sygnału
 let me = null, expanded = null, wakeLock = null;
 const alerted = new Map();     // klucz -> ostatni alarm (ms)
 
@@ -686,6 +690,9 @@ function tagBadge(t) {
 function render() {
   const now = Date.now();
   const hideOwn = $("hideown").checked;
+  // nieaktywne dłużej niż wybrany czas znikają (jak na CYD); zostają przypięte i historia pobrana z płytki
+  const ttl = Number($("ttl").value);
+  if (ttl) for (const [k, d] of drones) if (!pinned.has(k) && !d.hist && (now - d.seen) / 1000 > ttl) drones.delete(k);
   // u góry aktywne od najbliższego (bez pozycji: od najsilniejszego sygnału), niżej nieaktywne od najświeższego
   const list = [...drones.entries()]
     .map(([k, d]) => ({ k, d, tag: tagOf(d), age: (now - d.seen) / 1000,
@@ -703,7 +710,7 @@ function render() {
       const opDrone = d.olat !== undefined && d.lat !== undefined ? geo(d.olat, d.olon, d.lat, d.lon).dist : null;
       const name = names[d.id];
       let h = `<div class="card ${tag || ""} ${age > STALE_S ? "stale" : ""}" data-k="${esc(k)}">
-        <div class="top"><div><div class="uid">${esc(name || d.id || "bez ID (" + d.mac + ")")}</div>
+        <div class="top"><div><div class="uid">${pinned.has(k) ? '<span title="przypięty - zostaje na liście">📌</span> ' : ""}${esc(name || d.id || "bez ID (" + d.mac + ")")}</div>
           ${name ? `<div style="color:var(--muted);font-size:12px">${esc(d.id)}</div>` : ""}</div>${tagBadge(tag)}</div>`;
       const model = droneModel(d.id);
       const cls = d.cl >= 1 && d.cl <= 7 ? `C${d.cl - 1}` : null;
@@ -742,6 +749,9 @@ function render() {
             <button class="own ${tag === "own" ? "active" : ""}" data-act="own" ${d.id ? "" : "disabled"}>${tag === "own" ? "✓ " : ""}Swój</button>
             <button class="foreign ${tag === "foreign" ? "active" : ""}" data-act="foreign" ${d.id ? "" : "disabled"}>${tag === "foreign" ? "✓ " : ""}Obcy</button>
             ${tag ? `<button data-act="-">Usuń oznaczenie</button>` : ""}
+          </div>
+          <div class="row">
+            <button data-pin="1">${pinned.has(k) ? "📌 Odepnij - usuwaj po czasie" : "📌 Zostaw na liście"}</button>
           </div>
           <div class="row">
             ${d.lat !== undefined ? `<a href="https://www.google.com/maps/search/?api=1&query=${d.lat},${d.lon}" target="_blank" rel="noopener">dron w Mapach</a>` : ""}
@@ -983,7 +993,14 @@ $("connect").addEventListener("click", connect);
 $("addboard").addEventListener("click", connect);
 $("disconnectall").addEventListener("click", () => [...boards.values()].forEach(disconnect));
 $("hideown").addEventListener("change", render);
-$("clearlist").addEventListener("click", () => { drones.clear(); render(); });
+$("ttl").value = String(store.get("rid-ttl", 300));
+$("ttl").addEventListener("change", () => { store.set("rid-ttl", Number($("ttl").value)); render(); });
+$("clearlist").addEventListener("click", () => {
+  drones.clear();
+  pinned.clear();  // wyczyszczona lista - przypięcia też
+  store.set("rid-pinned", []);
+  render();
+});
 $("histreload").addEventListener("click", () => sendAll("HIST"));
 $("histclear").addEventListener("click", () => {
   if (confirm("Skasować historię dronów zapisaną w Heltec? (Pełny zapis ramek dla komputera zostaje.)")) sendAll("HISTCLR");
@@ -992,6 +1009,12 @@ $("list").addEventListener("click", async (e) => {
   const card = e.target.closest(".card");
   if (!card) return;
   const k = card.dataset.k, d = drones.get(k);
+  if (e.target.dataset?.pin) {  // przypięcie: dron nie znika z listy po czasie
+    if (pinned.has(k)) pinned.delete(k); else pinned.add(k);
+    store.set("rid-pinned", [...pinned]);
+    render();
+    return;
+  }
   const act = e.target.dataset?.act;
   if (act && d?.id) {
     const nm = $("nameinp")?.value.trim();

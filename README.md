@@ -79,6 +79,7 @@ na dole panele pasm Wi-Fi. Na telefonie te same części są jedna pod drugą.
   z czujnika ESP32-C5 nr 1 (bez niego z własnego radia), 5 GHz z czujnika C5 nr 2. Kanał, na którym teraz słychać drona,
   jest na czerwono. To nie jest widmo radiowe: aparatur ELRS ani analogowego wideo tu nie widać.
 - Przyciski **Swój / Obcy**. Swoje drony nie wywołują alarmu.
+- **Porządek na liście**: drony bez sygnału dłużej niż 5 minut znikają same (wybór w pasku opcji: 5 min / 30 min / nigdy). Przycisk **📌 Zostaw na liście** w karcie drona zatrzymuje go na stałe; drony z historii płytki nie znikają.
 - **Alarm** (dźwięk i wibracja) przy nowym, nieoznaczonym dronie.
 - **Historia** lotów zapisana w płytce.
 
