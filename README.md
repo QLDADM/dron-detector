@@ -94,6 +94,7 @@ Połączenie wymaga sparowania PIN-em i jest szyfrowane, więc obcy telefon nie 
 | Po naciśnięciu „Połącz” płytki nie ma na liście | Sprawdź, czy Heltec jest włączony i ma wgrany firmware RID (na ekranie widać kanał i liczniki) oraz czy telefon ma włączony Bluetooth. Na Androidzie włącz też lokalizację. |
 | Na iPhonie przycisk „Połącz” nie działa | Otwórz stronę w aplikacji **Bluefy**, nie w Safari. |
 | Telefon nie łączy się po aktualizacji firmware | Usuń płytkę w ustawieniach Bluetooth telefonu i sparuj ją ponownie z nowym PIN-em. |
+| Strona nie łączy się sama z płytką po otwarciu | W Chrome na Androidzie wpisz `chrome://flags/#enable-web-bluetooth-new-permissions-backend`, ustaw **Enabled**, uruchom Chrome ponownie i raz połącz się przyciskiem **Połącz**. Potem strona łączy się sama z wcześniej połączonymi płytkami, bez PIN-u. |
 | Czy wykryje każdego drona? | Tylko drony, które nadają Remote ID. Zasięg to zwykle kilkaset metrów, zależnie od drona i terenu. |
 
 ---
