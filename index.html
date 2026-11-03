@@ -1077,9 +1077,22 @@ document.addEventListener("touchend", () => applyWake(), { once: true });  // iO
 
 // ---- po odświeżeniu łączymy się sami z wcześniej wybranymi płytkami (bez okna wyboru i PIN-u)
 async function autoReconnect() {
-  if (!navigator.bluetooth?.getDevices || !window.isSecureContext) return;
   let ids = store.get("rid-auto-ids", null);
   if (ids === null) ids = store.get("rid-auto", false) ? "heltec" : [];  // zapis ze starszej wersji strony
+  if (!navigator.bluetooth?.getDevices || !window.isSecureContext) {
+    // Chrome bez dostępu do sparowanych płytek: podpowiedź tylko dla tych, którzy już się łączyli
+    if ((ids === "heltec" || ids.length) && !store.get("rid-autohint-hide", false)) {
+      const el = document.createElement("div");
+      el.className = "note";
+      el.style.cssText = "margin:6px 0 0;padding:6px 10px";
+      el.innerHTML = `Ta przeglądarka nie łączy się sama z płytkami po otwarciu strony. W Chrome wpisz w pasku adresu
+        <b>chrome://flags/#enable-web-bluetooth-new-permissions-backend</b>, ustaw <b>Enabled</b> i uruchom Chrome ponownie.
+        <button style="margin-left:8px;padding:2px 8px">✕</button>`;
+      el.querySelector("button").onclick = () => { el.remove(); store.set("rid-autohint-hide", true); };
+      $("boardhints").after(el);
+    }
+    return;
+  }
   let known;
   try { known = await navigator.bluetooth.getDevices(); } catch { return; }
   known = known.filter((d) => (ids === "heltec" ? (d.name || "").startsWith("RID-Heltec") : ids.includes(d.id)));
