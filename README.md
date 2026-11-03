@@ -76,7 +76,7 @@ na dole panele pasm Wi-Fi. Na telefonie te same części są jedna pod drugą.
 - **Pełny widok** (przycisk ⤢ przy radarze i widoku 3D): radar, widok 3D albo oba w nowej karcie, na cały ekran,
   z podkładem mapy (OSM albo satelita, z suwakiem jasności). Dane przychodzą z karty głównej, więc ona musi zostać otwarta.
 - **Pasma Wi-Fi 2,4 i 5 GHz**: zajętość kanałów (ramki na sekundę i najsilniejszy sygnał). Dane wysyła CYD: 2,4 GHz
-  z czujnika ESP32-C5 nr 1 (bez niego z własnego radia), 5 GHz z czujnika C5 nr 2. Kanał, na którym teraz słychać drona,
+  z czujnika ESP32-C5 nr 1, 5 GHz z czujnika C5 nr 2 (bez czujników panele pokazują „brak danych”). Kanał, na którym teraz słychać drona,
   jest na czerwono. To nie jest widmo radiowe: aparatur ELRS ani analogowego wideo tu nie widać.
 - Przyciski **Swój / Obcy**. Swoje drony nie wywołują alarmu.
 - **Porządek na liście**: drony bez sygnału dłużej niż 5 minut znikają same (wybór w pasku opcji: 5 min / 30 min / nigdy). Przycisk **📌 Zostaw na liście** w karcie drona zatrzymuje go na stałe; drony z historii płytki nie znikają.
