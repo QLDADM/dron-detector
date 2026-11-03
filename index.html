@@ -378,14 +378,23 @@ function setConn(b, text, cls) {
   renderBoards();
 }
 
+// zapis do płytki; przy intensywnym nadawaniu płytki przeglądarka potrafi odrzucić zapis ("operacja w toku") -
+// wtedy próbujemy jeszcze dwa razy; ostatni błąd zostaje w b.lastErr do komunikatu
 async function send(b, cmd) {
   if (!b.rx) return false;
   const data = new TextEncoder().encode(cmd + "\n");
-  try {
-    if (b.rx.writeValueWithResponse) await b.rx.writeValueWithResponse(data);
-    else await b.rx.writeValue(data);
-    return true;
-  } catch { return false; }
+  for (let i = 0; i < 3; i++) {
+    try {
+      if (b.rx.writeValueWithResponse) await b.rx.writeValueWithResponse(data);
+      else await b.rx.writeValue(data);
+      b.lastErr = "";
+      return true;
+    } catch (e) {
+      b.lastErr = `${e.name}: ${e.message}`;
+      await new Promise((r) => setTimeout(r, 300));
+    }
+  }
+  return false;
 }
 
 // polecenie do wszystkich połączonych płytek; true, gdy przyjęła je choć jedna
@@ -996,7 +1005,8 @@ $("list").addEventListener("click", async (e) => {
     if (!(await sendAll(`TAG ${d.id} ${act}`))) {
       if (before.tag) tags[d.id] = before.tag; else delete tags[d.id];
       d.tag = before.dtag;
-      alert("Nie zapisano oznaczenia - sprawdź połączenie z płytką.");
+      const errs = [...boards.values()].filter((x) => x.lastErr).map((x) => `${boardLabel(x)}: ${x.lastErr}`).join("\n");
+      alert("Nie zapisano oznaczenia - sprawdź połączenie z płytką." + (errs ? `\n\n${errs}` : ""));
       render();
     }
     return;
