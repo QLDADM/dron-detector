@@ -422,7 +422,7 @@ function onData(b, e) {
     try { msg = JSON.parse(line); } catch { continue; }
     if (msg.d) onDrone(msg.d, b);
     else if (msg.s) { b.status = msg.s; renderBoards(); }
-    else if (msg.cs) { bands[msg.cs.b] = { ...msg.cs, at: Date.now(), from: boardLabel(b) }; renderBand(); }
+    else if (msg.cs) { bands[msg.cs.b] = { ...msg.cs, at: Date.now(), from: boardLabel(b), board: b }; renderBand(); }
     else if (msg.tags) { b.tags = msg.tags; combineTags(); render(); }
     else if (msg.h) onHist(b, msg.h);
     else if (msg.hp) onHistPoints(b, msg.hp);
@@ -647,7 +647,8 @@ function renderBoards() {
       const cyd = s.dev === "cyd";
       info = `<span>zasilanie ${bat}</span>
         <span>${cyd ? `SD <b>${s.sd ? s.mem : "brak"}</b>` : `zapisane <b>${s.mem}</b>`}</span>
-        <span>kanał <b>${s.ch}${s.fixed ? "" : "*"}</b></span>
+        ${s.ch != null ? `<span>kanał <b>${s.ch}${s.fixed ? "" : "*"}</b></span>` : ""}
+        ${Array.isArray(s.c5) ? s.c5.map((on, i) => `<span>C5 nr ${i + 1} <b style="color:var(--${on ? "ok" : "bad"})">${on ? "działa" : "brak"}</b></span>`).join("") : ""}
         ${cyd ? "" : `<span>LoRa <b>${s.mesh ? "nadaje" : "wył."}</b></span>`}
         ${s.pc ? "<span><b>PC</b></span>" : ""}
         ${s.pend ? `<span>oznaczeń do przeniesienia <b>${s.pend}</b></span>` : ""}
@@ -970,20 +971,31 @@ function renderRadar(list) {
 document.querySelectorAll(".popout").forEach((b) => b.addEventListener("click", () => window.open(`view.html?m=${b.dataset.view}`, "_blank")));
 
 // zajętość kanałów: ile ramek Wi-Fi słychać, a nie widmo radiowe, więc np. ELRS i analogowego wideo tu nie widać
+const BAND_FRESH_S = 30;      // C5 podaje pasmo co ok. 10 s
+const ago = (s) => s < 120 ? `${Math.round(s)} s` : s < 7200 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)} h`;
+// CYD w statusie podaje stan czujników C5: [nr 1, nr 2]
+function boardOff(b, nr) {
+  const st = b?.board?.status;
+  return Array.isArray(st?.c5) && st.c5[nr - 1] === false;
+}
+
 function renderBand() {
   const BAND = [["2G4", "Wi-Fi 2,4 GHz"], ["5G", "Wi-Fi 5 GHz"]];
   // kanały, na których teraz słychać drona (płytka podaje kanał ostatniej ramki Wi-Fi)
   const hit = new Set([...drones.values()].filter((d) => d.ch && (Date.now() - d.seen) / 1000 <= STALE_S).map((d) => d.ch));
   $("bandwrap").innerHTML = BAND.map(([id, title]) => {
-    const b = bands[id];
-    if (!b) return `<div class="band"><h4>${title}</h4><div class="bandempty">Brak danych. To pasmo poda ESP32-C5 nr ${id === "5G" ? 2 : 1}.</div></div>`;
-    const age = (Date.now() - b.at) / 1000;
+    const b = bands[id], nr = id === "5G" ? 2 : 1;
+    const age = b ? (Date.now() - b.at) / 1000 : Infinity;
+    // czujnik C5 odłączony (stan z CYD) albo brak nowych danych - bez starego wykresu
+    const c5off = boardOff(b, nr);
+    if (!b || age > BAND_FRESH_S || c5off)
+      return `<div class="band"><h4>${title}${b ? `<small>ostatnio ${esc(b.from)}, ${ago(age)} temu</small>` : ""}</h4><div class="bandempty">Brak danych z ESP32-C5 nr ${nr}${c5off ? " - czujnik niepodłączony" : ""}.</div></div>`;
     const cols = b.r.map((rate, i) => {
       const peak = b.p[i], pct = rate ? Math.min(100, (Math.log10(rate + 1) * 100) / 3) : 0;
       const ch = b.c ? b.c[i] : i + 1, on = hit.has(ch);
       return `<div class="bcol${on ? " hit" : ""}" title="${on ? "dron na tym kanale · " : ""}${rate} ramek/s${peak > -128 ? `, ${peak} dBm` : ""}"><b>${peak > -128 ? peak : ""}</b><div class="bbox"><i style="height:${pct}%"></i></div>${ch}</div>`;
     }).join("");
-    return `<div class="band ${age > 60 ? "stale" : ""}"><h4>${title}<small>${esc(b.from)}, ${Math.round(age)} s temu</small></h4><div class="bchart">${cols}</div></div>`;
+    return `<div class="band"><h4>${title}<small>${esc(b.from)}, ${Math.round(age)} s temu</small></h4><div class="bchart">${cols}</div></div>`;
   }).join("") + `<div id="bandnote">Słupek: ramki Wi-Fi na sekundę (skala logarytmiczna), liczba: najsilniejszy sygnał w dBm. To zajętość kanałów Wi-Fi, a nie widmo: aparatur ELRS ani analogowego wideo tu nie widać. Czerwony kanał: teraz słychać na nim drona.</div>`;
 }
 
