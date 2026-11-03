@@ -111,12 +111,14 @@ const RidViews = (() => {
 
   // radar: wiązka tylko wizualna, pozycje dronów pochodzą z ich Remote ID
   const sweeps = new WeakMap();
-  // przejście wiązki: kropka rozbłyska i przygasa do następnego obrotu, od drona rozchodzi się pierścień
-  const BLIP = [{ opacity: 1, filter: "brightness(1.8) drop-shadow(0 0 3px #fff)" }, { opacity: 1, filter: "none", offset: 0.12 },
+  // przejście wiązki: czerwony rozbłysk na dronie i czerwony pierścień rozchodzący się od niego, potem kropka
+  // przygasa lekko do następnego obrotu. Działa zawsze (także przy ograniczeniu animacji), jak sama wiązka.
+  const FLASH = "#ff1744";
+  const BLIP = [{ opacity: 1, filter: `brightness(1.5) drop-shadow(0 0 3px ${FLASH}) drop-shadow(0 0 7px ${FLASH})` },
+    { opacity: 1, filter: `drop-shadow(0 0 2px ${FLASH})`, offset: 0.1 }, { opacity: 1, filter: "none", offset: 0.25 },
     { opacity: 0.8, filter: "none" }];  // przygasa tylko lekko - dron ma być widoczny cały obrót
-  const PING = [{ transform: "scale(.35)", opacity: 0.95, easing: "ease-out" }, { transform: "scale(1)", opacity: 0, offset: 0.22 },
+  const PING = [{ transform: "scale(.3)", opacity: 1, easing: "ease-out" }, { transform: "scale(1)", opacity: 0, offset: 0.3 },
     { transform: "scale(1)", opacity: 0 }];
-  const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
   function radar(svg, sweep, pts, scale) {
     // animacja uruchamiana raz: zmiana przy każdym odświeżeniu danych powodowała przeskoki wiązki
     if (!sweeps.has(sweep) && document.timeline.currentTime !== null) {
@@ -135,7 +137,7 @@ const RidViews = (() => {
         continue;
       }
       const halo = `stroke="#02100a" stroke-width="${(fs * 0.28).toFixed(2)}" paint-order="stroke" font-family="monospace"`;
-      s += `<circle class="ping" data-brg="${p.brg.toFixed(1)}" cx="${x}" cy="${y}" r="${r0 * 2.6}" fill="none" stroke="${color(p.tag)}" stroke-width="${r0 * 0.35}" opacity="0"/>`;
+      s += `<circle class="ping" data-brg="${p.brg.toFixed(1)}" cx="${x}" cy="${y}" r="${r0 * 3.4}" fill="none" stroke="${FLASH}" stroke-width="${r0 * 0.5}" opacity="0"/>`;
       s += `<g opacity="${p.fresh ? 1 : 0.4}"><g class="blip" data-brg="${p.brg.toFixed(1)}">${dot(x, y, r0, color(p.tag))}`;
       s += `<text x="${x + r0 + 1.5}" y="${y - fs * 0.15}" fill="#dbe4ec" font-size="${fs}" ${halo}>${esc(p.label)}</text>`;
       s += `<text x="${x + r0 + 1.5}" y="${y + fs * 0.85}" fill="#9fe8bd" font-size="${(fs * 0.85).toFixed(2)}" ${halo}>${hTxt(p)}</text>`;
@@ -146,7 +148,7 @@ const RidViews = (() => {
     // rozbłyski startują od startu wiązki przesuniętego o kierunek drona - zgrane z nią co do klatki,
     // niezależnie od tego, kiedy przeglądarka narysuje nowe elementy
     const a = sweeps.get(sweep);
-    if (!a || a.startTime === null || still()) return;
+    if (!a || a.startTime === null) return;
     for (const el of svg.querySelectorAll("[data-brg]")) {
       const k = el.animate(el.classList.contains("ping") ? PING : BLIP, { duration: SWEEP_MS, iterations: Infinity });
       k.startTime = a.startTime + (el.dataset.brg / 360) * SWEEP_MS - SWEEP_MS;  // w przeszłości: animacja już trwa
